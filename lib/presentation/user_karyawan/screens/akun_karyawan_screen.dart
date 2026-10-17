@@ -149,10 +149,12 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                     color: AppColors.surfaceContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.camera_alt_rounded, color: AppColors.secondary),
+                  child: const Icon(Icons.camera_alt_rounded,
+                      color: AppColors.secondary),
                 ),
                 title: const Text('Ambil Foto Baru (Kamera)'),
-                subtitle: const Text('Gunakan wajah jelas untuk verifikasi biometrik'),
+                subtitle: const Text(
+                    'Gunakan wajah jelas untuk verifikasi biometrik'),
                 onTap: () {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -171,7 +173,8 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                     color: AppColors.surfaceContainer,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.photo_library_rounded, color: AppColors.secondary),
+                  child: const Icon(Icons.photo_library_rounded,
+                      color: AppColors.secondary),
                 ),
                 title: const Text('Pilih dari Galeri'),
                 subtitle: const Text('Unggah berkas foto formal'),
@@ -214,7 +217,8 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
           children: [
             const Text(
               'Masukkan 6 digit PIN baru untuk keamanan autentikasi presensi Anda:',
-              style: TextStyle(fontSize: 12.5, color: AppColors.onSurfaceVariant),
+              style:
+                  TextStyle(fontSize: 12.5, color: AppColors.onSurfaceVariant),
             ),
             const SizedBox(height: 14),
             TextField(
@@ -224,7 +228,8 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
               obscureText: true,
               decoration: InputDecoration(
                 hintText: 'PIN Baru (6 digit)',
-                prefixIcon: const Icon(Icons.pin_rounded, color: AppColors.secondary),
+                prefixIcon:
+                    const Icon(Icons.pin_rounded, color: AppColors.secondary),
                 counterText: '',
                 fillColor: AppColors.background,
                 filled: true,
@@ -473,7 +478,9 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                           children: [
                             Flexible(
                               child: Text(
-                                user.name.isNotEmpty ? user.name : 'Budi Pratama',
+                                user.name.isNotEmpty
+                                    ? user.name
+                                    : 'Budi Pratama',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -528,10 +535,12 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.tertiaryContainer.withValues(alpha: 0.1),
+                            color: AppColors.tertiaryContainer
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: AppColors.tertiaryContainer.withValues(alpha: 0.25),
+                              color: AppColors.tertiaryContainer
+                                  .withValues(alpha: 0.25),
                             ),
                           ),
                           child: Row(
@@ -549,8 +558,11 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppColors.tertiaryContainer.withValues(
-                                            alpha: _pulseAnimation.value > 1.0 ? 0.5 : 0.1,
+                                          color: AppColors.tertiaryContainer
+                                              .withValues(
+                                            alpha: _pulseAnimation.value > 1.0
+                                                ? 0.5
+                                                : 0.1,
                                           ),
                                           blurRadius: 4,
                                         ),
@@ -618,7 +630,8 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(20),
@@ -664,7 +677,8 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
               ),
               filled: true,
               fillColor: AppColors.background,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
@@ -715,7 +729,8 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
               ),
               filled: true,
               fillColor: AppColors.background,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
