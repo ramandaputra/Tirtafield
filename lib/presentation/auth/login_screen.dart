@@ -180,31 +180,35 @@ class _LoginScreenState extends State<LoginScreen>
                   children: [
                     // Header Logo & Title
                     Container(
-                      width: 58,
-                      height: 58,
+                      width: 68,
+                      height: 68,
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            AppColors.secondaryContainer,
-                            AppColors.primary,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                          width: 1.5,
                         ),
-                        borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.secondaryContainer
-                                .withValues(alpha: 0.25),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            blurRadius: 18,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.lock_rounded,
-                        size: 30,
-                        color: Colors.white,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.asset(
+                          'assets/images/favicon.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.lock_rounded,
+                            size: 30,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),

@@ -53,10 +53,13 @@ class MainShell extends StatelessWidget {
             const Spacer(),
             TextButton.icon(
               onPressed: () {
-                authProv.switchUserByRole(UserRole.karyawan);
+                authProv.logout();
               },
-              icon: const Icon(Icons.arrow_back, size: 16),
-              label: const Text('Ke Tampilan Karyawan'),
+              icon: const Icon(Icons.logout, size: 16, color: AppColors.error),
+              label: const Text(
+                'Keluar / Logout',
+                style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),

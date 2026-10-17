@@ -18,4 +18,9 @@ class ApiConfig {
   static String get loginUrl => '$baseUrl/login.php';
   static String get attendanceUrl => '$baseUrl/attendance.php';
   static String get approvalUrl => '$baseUrl/approval.php';
+
+  /// Google Maps API Key
+  static const String googleMapsApiKey =
+      'AIzaSyD8JZLYEBnnZHa9DwKsDTYSazu0qJhscQE';
 }
+

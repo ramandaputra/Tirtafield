@@ -588,7 +588,7 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                             onTap: () {
                               final lat = widget.latitude ?? LocationService.hqLatitude;
                               final lng = widget.longitude ?? LocationService.hqLongitude;
-                              LocationService.openInGoogleMaps(lat, lng);
+                              LocationService.showMapChooserSheet(context, lat, lng);
                             },
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
@@ -600,7 +600,7 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                                 ),
                                 SizedBox(width: 4),
                                 Text(
-                                  'Buka di Google Maps',
+                                  'Buka di Maps (Google / OSM)',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,

@@ -30,7 +30,8 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
   LocationResult? _locationResult;
 
   int _mapZoom = 16;
-  bool _isSatelliteMode = false;
+  // 0: Peta Jalan (Carto/Google Style), 1: OpenStreetMap Resmi (Bebas API), 2: Satelit ArcGIS
+  int _mapProviderIndex = 0;
   Offset _panOffset = Offset.zero;
 
   late AnimationController _pulseController;
@@ -443,9 +444,15 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                       final left = originX + (dx * tileSize);
                       final top = originY + (dy * tileSize);
 
-                      final tileUrl = _isSatelliteMode
-                          ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$zoom/$currentTileY/$currentTileX'
-                          : 'https://basemaps.cartocdn.com/rastertiles/voyager/$zoom/$currentTileX/$currentTileY.png';
+                      final tileUrl = _mapProviderIndex == 1
+                          ? 'https://tile.openstreetmap.org/$zoom/$currentTileX/$currentTileY.png'
+                          : (_mapProviderIndex == 2
+                              ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$zoom/$currentTileY/$currentTileX'
+                              : 'https://basemaps.cartocdn.com/rastertiles/voyager/$zoom/$currentTileX/$currentTileY.png');
+
+                      final fallbackTileUrl = _mapProviderIndex == 1
+                          ? 'https://basemaps.cartocdn.com/rastertiles/voyager/$zoom/$currentTileX/$currentTileY.png'
+                          : 'https://tile.openstreetmap.org/$zoom/$currentTileX/$currentTileY.png';
 
                       return Positioned(
                         left: left,
@@ -455,7 +462,11 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                         child: Image.network(
                           tileUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
+                          errorBuilder: (_, __, ___) => Image.network(
+                            fallbackTileUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox(),
+                          ),
                         ),
                       );
                     });
@@ -570,7 +581,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                       child: InkWell(
                         onTap: () {
                           setState(() {
-                            _isSatelliteMode = !_isSatelliteMode;
+                            _mapProviderIndex = (_mapProviderIndex + 1) % 3;
                           });
                         },
                         borderRadius: BorderRadius.circular(8),
@@ -583,15 +594,21 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                _isSatelliteMode
-                                    ? Icons.layers_clear_rounded
-                                    : Icons.layers_rounded,
+                                _mapProviderIndex == 1
+                                    ? Icons.public_rounded
+                                    : (_mapProviderIndex == 2
+                                        ? Icons.satellite_alt_rounded
+                                        : Icons.layers_rounded),
                                 size: 16,
                                 color: const Color(0xFF1A73E8),
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                _isSatelliteMode ? 'Satelit' : 'Peta Jalan',
+                                _mapProviderIndex == 1
+                                    ? 'OpenStreetMap'
+                                    : (_mapProviderIndex == 2
+                                        ? 'Satelit ArcGIS'
+                                        : 'Peta Jalan'),
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -651,7 +668,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                     ),
                   ),
 
-                  // 8. Bottom Left: Google Maps Logo Brand
+                  // 8. Bottom Left: Provider Logo / Brand Badge
                   Positioned(
                     bottom: 8,
                     left: 10,
@@ -670,18 +687,30 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                           ),
                         ],
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.place,
-                            color: Color(0xFFEA4335),
+                            _mapProviderIndex == 1
+                                ? Icons.public
+                                : (_mapProviderIndex == 2
+                                    ? Icons.satellite_alt
+                                    : Icons.place),
+                            color: _mapProviderIndex == 1
+                                ? const Color(0xFF137333)
+                                : (_mapProviderIndex == 2
+                                    ? const Color(0xFF1A73E8)
+                                    : const Color(0xFFEA4335)),
                             size: 13,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Google Maps',
-                            style: TextStyle(
+                            _mapProviderIndex == 1
+                                ? 'OpenStreetMap'
+                                : (_mapProviderIndex == 2
+                                    ? 'ArcGIS Satellite'
+                                    : 'Google Maps View'),
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF202124),
@@ -693,14 +722,14 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                     ),
                   ),
 
-                  // 9. Bottom Right: "Buka di Google Maps" Button
+                  // 9. Bottom Right: "Buka di Peta (Google / OSM)" Button
                   Positioned(
                     bottom: 8,
                     right: 10,
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () => LocationService.openInGoogleMaps(lat, lng),
+                        onTap: () => LocationService.showMapChooserSheet(context, lat, lng),
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -723,13 +752,13 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.open_in_new_rounded,
+                                Icons.map_outlined,
                                 size: 12,
                                 color: Colors.white,
                               ),
                               SizedBox(width: 5),
                               Text(
-                                'Buka di Google Maps',
+                                'Buka di Peta',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -918,12 +947,12 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
           ),
           const SizedBox(height: 10),
 
-          // Google Maps Direct Navigation Link
+          // Map Direct Navigation Link with Chooser
           InkWell(
             onTap: () {
               final lat = _locationResult?.latitude ?? LocationService.hqLatitude;
               final lng = _locationResult?.longitude ?? LocationService.hqLongitude;
-              LocationService.openInGoogleMaps(lat, lng);
+              LocationService.showMapChooserSheet(context, lat, lng);
             },
             borderRadius: BorderRadius.circular(8),
             child: const Padding(
@@ -937,7 +966,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                   ),
                   SizedBox(width: 6),
                   Text(
-                    'Buka dan Navigasi di Google Maps',
+                    'Buka & Navigasi di Maps (Google Maps / OpenStreetMap / Waze)',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,

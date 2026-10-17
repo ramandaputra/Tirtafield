@@ -51,6 +51,11 @@ class _DashboardDirekturScreenState extends State<DashboardDirekturScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Keluar',
+            icon: const Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
+            onPressed: () => authProv.logout(),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: RoleBadge(role: user.role),

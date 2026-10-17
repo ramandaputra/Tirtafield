@@ -337,13 +337,9 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
 
               // 3. PREFERENCES & SETTINGS MODULE
               _buildPreferencesSection(),
-              const SizedBox(height: 14),
-
-              // 4. DEMO SWITCH ROLE SECTION (Preserved corporate multi-role switcher)
-              _buildRoleSwitcherSection(authProv),
               const SizedBox(height: 16),
 
-              // 5. ACTION BUTTONS (SAVE & LOGOUT)
+              // 4. ACTION BUTTONS (SAVE & LOGOUT)
               _buildActionButtons(authProv),
             ],
           ),
@@ -911,133 +907,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
     );
   }
 
-  // 4. DEMO ROLE SWITCHER (Corporate Multi-Role Feature)
-  Widget _buildRoleSwitcherSection(AuthProvider authProv) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Demo Switch Role',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                  fontFamily: 'Inter',
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryFixed,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  '3 Tingkatan Role',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Pilih role untuk beralih tampilan antarmuka secara instan:',
-            style: TextStyle(
-              fontSize: 11.5,
-              color: AppColors.onSurfaceVariant,
-              fontFamily: 'Inter',
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildRoleChip(
-                  label: 'Karyawan',
-                  role: UserRole.karyawan,
-                  isSelected: authProv.currentRole == UserRole.karyawan,
-                  onTap: () => authProv.switchUserByRole(UserRole.karyawan),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildRoleChip(
-                  label: 'Direktur',
-                  role: UserRole.direktur,
-                  isSelected: authProv.currentRole == UserRole.direktur,
-                  onTap: () => authProv.switchUserByRole(UserRole.direktur),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildRoleChip(
-                  label: 'Staff IT',
-                  role: UserRole.staffIT,
-                  isSelected: authProv.currentRole == UserRole.staffIT,
-                  onTap: () => authProv.switchUserByRole(UserRole.staffIT),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRoleChip({
-    required String label,
-    required UserRole role,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.secondaryContainer
-              : AppColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.secondaryContainer
-                : AppColors.outlineVariant.withValues(alpha: 0.3),
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.onSurface,
-            fontFamily: 'Inter',
-          ),
-        ),
-      ),
-    );
-  }
-
-  // 5. ACTION BUTTONS (SAVE & LOGOUT)
+  // 4. ACTION BUTTONS (SAVE & LOGOUT)
   Widget _buildActionButtons(AuthProvider authProv) {
     return Column(
       children: [

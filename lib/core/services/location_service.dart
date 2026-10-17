@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import '../constants/api_config.dart';
+
 
 class LocationResult {
   final double latitude;
@@ -74,11 +76,202 @@ class LocationService {
     }
   }
 
-  /// Reverse geocoding alamat riil dari koordinat GPS Google Maps / Nominatim
+  /// Membuka lokasi di OpenStreetMap (100% Bebas API Key & Akses Global)
+  static Future<bool> openInOpenStreetMap(double lat, double lng) async {
+    final Uri osmUrl = Uri.parse(
+      'https://www.openstreetmap.org/?mlat=$lat&mlon=$lng#map=17/$lat/$lng',
+    );
+    try {
+      if (await canLaunchUrl(osmUrl)) {
+        return await launchUrl(osmUrl, mode: LaunchMode.externalApplication);
+      } else {
+        return await launchUrl(osmUrl);
+      }
+    } catch (e) {
+      debugPrint('Gagal membuka OpenStreetMap: $e');
+      return false;
+    }
+  }
+
+  /// Membuka lokasi di Waze Navigation
+  static Future<bool> openInWaze(double lat, double lng) async {
+    final Uri wazeUrl = Uri.parse(
+      'https://waze.com/ul?ll=$lat,$lng&navigate=yes',
+    );
+    try {
+      if (await canLaunchUrl(wazeUrl)) {
+        return await launchUrl(wazeUrl, mode: LaunchMode.externalApplication);
+      } else {
+        return await launchUrl(wazeUrl);
+      }
+    } catch (e) {
+      debugPrint('Gagal membuka Waze: $e');
+      return false;
+    }
+  }
+
+  /// Membuka lokasi dengan fallback otomatis: Google Maps -> OpenStreetMap
+  static Future<bool> openInMapsWithFallback(double lat, double lng) async {
+    final googleSuccess = await openInGoogleMaps(lat, lng);
+    if (!googleSuccess) {
+      debugPrint('Google Maps tidak dapat dibuka, mengalihkan ke OpenStreetMap...');
+      return await openInOpenStreetMap(lat, lng);
+    }
+    return true;
+  }
+
+  /// Menampilkan lembar pilihan peta (Google Maps, OpenStreetMap, Waze)
+  static void showMapChooserSheet(BuildContext context, double lat, double lng) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Pilih Layanan Peta',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Text(
+                'Buka koordinat lokasi presensi menggunakan aplikasi atau web pilihan:',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              const SizedBox(height: 14),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F0FE),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.map_rounded, color: Color(0xFF1A73E8)),
+                ),
+                title: const Text('Google Maps', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                subtitle: const Text('Aplikasi navigasi utama Google', style: TextStyle(fontSize: 11)),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  openInGoogleMaps(lat, lng);
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F4EA),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.public_rounded, color: Color(0xFF137333)),
+                ),
+                title: const Text('OpenStreetMap (Alternatif Bebas API)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                subtitle: const Text('Peta global open-source bebas kuota', style: TextStyle(fontSize: 11)),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  openInOpenStreetMap(lat, lng);
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF7E0),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.navigation_rounded, color: Color(0xFFF9AB00)),
+                ),
+                title: const Text('Waze Navigation', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                subtitle: const Text('Navigasi rute & lalu lintas real-time', style: TextStyle(fontSize: 11)),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 13),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  openInWaze(lat, lng);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Reverse geocoding alamat riil dari koordinat GPS (Google Maps API & OSM Nominatim Fallback)
   static Future<Map<String, String>> reverseGeocode(
     double lat,
     double lng,
   ) async {
+    // 1. Coba Google Geocoding API resmi jika API Key tersedia
+    if (ApiConfig.googleMapsApiKey.isNotEmpty) {
+      try {
+        final googleUri = Uri.parse(
+          'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=${ApiConfig.googleMapsApiKey}&language=id',
+        );
+        final response = await http.get(googleUri).timeout(const Duration(seconds: 4));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['status'] == 'OK' && (data['results'] as List).isNotEmpty) {
+            final results = data['results'] as List;
+            final first = results[0] as Map<String, dynamic>;
+            final formattedAddress = first['formatted_address'] as String? ?? '';
+
+            String placeName = '';
+            if (first['address_components'] is List) {
+              for (final comp in first['address_components']) {
+                final types = (comp['types'] as List?) ?? [];
+                if (types.contains('point_of_interest') ||
+                    types.contains('establishment') ||
+                    types.contains('premise') ||
+                    types.contains('route')) {
+                  placeName = comp['long_name']?.toString() ?? '';
+                  break;
+                }
+              }
+            }
+
+            if (placeName.isEmpty && results.length > 1) {
+              final second = results[1] as Map<String, dynamic>;
+              placeName = second['formatted_address']?.toString().split(',').first ?? '';
+            }
+
+            return {
+              'name': placeName.isNotEmpty ? placeName : 'Area Presensi Lapangan',
+              'address': formattedAddress,
+            };
+          }
+        }
+      } catch (e) {
+        debugPrint('Google Geocoding error, falling back to OSM: $e');
+      }
+    }
+
+    // 2. Fallback: OpenStreetMap Nominatim
     try {
       final uri = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
@@ -111,7 +304,7 @@ class LocationService {
         };
       }
     } catch (e) {
-      debugPrint('Reverse geocoding error: $e');
+      debugPrint('Reverse geocoding OSM error: $e');
     }
 
     return {

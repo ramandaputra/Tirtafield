@@ -99,41 +99,40 @@ class _SplashScreenState extends State<SplashScreen>
                       Container(
                         width: 96,
                         height: 96,
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.12),
+                          color: Colors.white,
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.25),
-                            width: 2,
+                            color: Colors.white.withValues(alpha: 0.85),
+                            width: 2.5,
                           ),
                           boxShadow: [
                             BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.35),
+                              blurRadius: 32,
+                              spreadRadius: 4,
+                            ),
+                            BoxShadow(
                               color: AppColors.secondaryContainer
-                                  .withValues(alpha: 0.35),
-                              blurRadius: 36,
-                              spreadRadius: 6,
+                                  .withValues(alpha: 0.4),
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
                           ],
                         ),
                         child: Center(
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.secondaryContainer,
-                                  Color(0xFF0051D5),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/favicon.png',
+                              width: 68,
+                              height: 68,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.lock_person_rounded,
+                                size: 40,
+                                color: AppColors.primary,
                               ),
-                            ),
-                            child: const Icon(
-                              Icons.lock_person_rounded,
-                              size: 40,
-                              color: Colors.white,
                             ),
                           ),
                         ),
