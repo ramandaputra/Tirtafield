@@ -21,9 +21,9 @@ class BuktiPresensiBerhasilScreen extends StatefulWidget {
     super.key,
     this.slotType = AttendanceSlotType.masuk,
     this.slotTitle = 'Absen Masuk',
-    this.projectLocation = 'Area Proyek Sudirman Office Tower',
+    this.projectLocation = 'Kantor Tirtafield Tanjung Pinang',
     this.projectAddress =
-        'Jl. Jenderal Sudirman Kav. 21, Karet Setiabudi, Jakarta Selatan, DKI Jakarta 12920',
+        'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113',
     this.distanceHq = '8.5 km',
     this.capturedDateTime,
     this.photoUrl,

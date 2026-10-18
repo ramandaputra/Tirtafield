@@ -22,9 +22,9 @@ class AmbilFotoAbsensiScreen extends StatefulWidget {
     super.key,
     this.slotType = AttendanceSlotType.istirahatKeluar,
     this.slotTitle = 'Absen Istirahat',
-    this.projectLocation = 'Area Proyek Sudirman Office Tower',
+    this.projectLocation = 'Kantor Tirtafield Tanjung Pinang',
     this.projectAddress =
-        'Jl. Jenderal Sudirman Kav. 21, Karet Setiabudi, Jakarta Selatan, DKI Jakarta 12920',
+        'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113',
     this.distanceHq = '8.5 km',
     this.latitude,
     this.longitude,
@@ -56,7 +56,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
   late Animation<double> _flashAnimation;
 
   final TextEditingController _notesController = TextEditingController(
-    text: 'Presensi penugasan lapangan Proyek Sudirman Office Tower',
+    text: 'Presensi kehadiran operasional Kantor Tirtafield Tanjung Pinang',
   );
 
   bool _isSubmitting = false;
@@ -1580,7 +1580,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
               Expanded(
                 child: _buildBentoStatItem(
                   title: 'LOKASI',
-                  value: 'Proyek Sudirman',
+                  value: 'Tj. Pinang Timur',
                   valueColor: AppColors.onSurface,
                 ),
               ),

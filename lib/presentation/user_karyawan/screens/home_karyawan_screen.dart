@@ -251,21 +251,18 @@ class _HomeKaryawanScreenState extends State<HomeKaryawanScreen> {
       onRefresh: () async {
         await context.read<AttendanceProvider>().loadTodayAttendance(user);
       },
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: const SingleChildScrollView(
+        physics: AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. HERO DIGITAL CLOCK CARD
-            CorporateHeroClock(
-              department: user.department,
-              shift: 'Shift 08:00 - 17:00',
-            ),
-            const SizedBox(height: 16),
+            CorporateHeroClock(),
+            SizedBox(height: 16),
 
             // 2. 4 DEDICATED ATTENDANCE ACTIONS
-            const CorporateAttendanceCards(),
+            CorporateAttendanceCards(),
           ],
         ),
       ),

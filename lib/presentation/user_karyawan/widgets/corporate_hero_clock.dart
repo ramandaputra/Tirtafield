@@ -1,16 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_time_helper.dart';
+import '../../../state/auth_provider.dart';
 
 class CorporateHeroClock extends StatefulWidget {
-  final String department;
-  final String shift;
+  final String? department;
+  final String? shift;
 
   const CorporateHeroClock({
     super.key,
-    this.department = 'Product & Tech',
-    this.shift = 'Shift 08:00 - 17:00',
+    this.department,
+    this.shift,
   });
 
   @override
@@ -40,12 +42,58 @@ class _CorporateHeroClockState extends State<CorporateHeroClock> {
     super.dispose();
   }
 
+  String _getTimeGreeting(int hour) {
+    if (hour >= 4 && hour < 11) {
+      return 'Selamat Pagi';
+    } else if (hour >= 11 && hour < 15) {
+      return 'Selamat Siang';
+    } else if (hour >= 15 && hour < 18) {
+      return 'Selamat Sore';
+    } else {
+      return 'Selamat Malam';
+    }
+  }
+
+  String _formatDisplayName(String fullName) {
+    if (fullName.isEmpty) return 'Karyawan';
+    // Ambil sebelum koma jika ada gelar akademik (S.E., M.M., dll)
+    String clean = fullName.split(',').first.trim();
+    // Hilangkan prefix gelar depan (Ir., H., Dr., dll)
+    clean = clean
+        .replaceAll(
+          RegExp(r'^(IR\.|H\.|DR\.|DRS\.|PROF\.)\s*', caseSensitive: false),
+          '',
+        )
+        .trim();
+    clean = clean
+        .replaceAll(
+          RegExp(r'^(H\.|HJ\.)\s*', caseSensitive: false),
+          '',
+        )
+        .trim();
+
+    // Format Title Case jika nama ditulis UPPERCASE
+    if (clean == clean.toUpperCase()) {
+      clean = clean.split(' ').map((word) {
+        if (word.isEmpty) return '';
+        return word[0].toUpperCase() + word.substring(1).toLowerCase();
+      }).join(' ');
+    }
+    return clean;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authProv = context.watch<AuthProvider>();
+    final user = authProv.currentUser;
+
     final hours = _now.hour.toString().padLeft(2, '0');
     final minutes = _now.minute.toString().padLeft(2, '0');
     final seconds = _now.second.toString().padLeft(2, '0');
     final timeStr = '$hours:$minutes:$seconds';
+
+    final greeting = _getTimeGreeting(_now.hour);
+    final displayName = _formatDisplayName(user.name);
 
     return Container(
       width: double.infinity,
@@ -80,116 +128,70 @@ class _CorporateHeroClockState extends State<CorporateHeroClock> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Left Column: Status, Digital Clock, Date
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Greeting centered (tanpa icon pagi, siang, malam & tanpa status sedang bekerja)
+                  Text(
+                    '$greeting, $displayName',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.secondary,
+                      fontFamily: 'Inter',
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Jam digital centrify
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
-                      // Status session tag
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.tertiaryContainer,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Sedang Bekerja (Sesi Aktif)',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.tertiaryContainer,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-
-                      // Clock HH:MM:SS + WIB
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            timeStr,
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.onSurface,
-                              letterSpacing: -0.5,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'WIB',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-
-                      // Date: e.g. Senin, 14 Oktober 2024
                       Text(
-                        DateTimeHelper.formatIndonesianDate(_now),
+                        timeStr,
                         style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.onSurfaceVariant,
-                          fontWeight: FontWeight.w400,
+                          fontSize: 34,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                          letterSpacing: -0.5,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'WIB',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
                         ),
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 4),
 
-                // Right Column: Department Pill & Shift Note
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        widget.department,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                      ),
+                  // Tanggal di bawah jam (centrify)
+                  Text(
+                    DateTimeHelper.formatIndonesianDate(_now),
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      color: AppColors.onSurfaceVariant,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: 'Inter',
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      widget.shift,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.outline,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

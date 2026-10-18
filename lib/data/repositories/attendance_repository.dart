@@ -29,19 +29,12 @@ class MockAttendanceRepository implements AttendanceRepository {
     final key = _getKey(todayKey, userId);
 
     if (!_recordsByDateAndUser.containsKey(key)) {
-      final now = DateTime.now();
-      final checkInTime = DateTime(now.year, now.month, now.day, 8, 15, 0);
-
       _recordsByDateAndUser[key] = DailyAttendanceRecord(
         id: 'rec_${DateTime.now().millisecondsSinceEpoch}',
         userId: userId,
         userName: userName,
         dateKey: todayKey,
-        slotMasuk: AttendanceSlotItem(
-          type: AttendanceSlotType.masuk,
-          recordedTime: checkInTime,
-          location: 'Kantor Pusat Tirtafield',
-        ),
+        slotMasuk: const AttendanceSlotItem(type: AttendanceSlotType.masuk),
         slotIstirahatKeluar:
             const AttendanceSlotItem(type: AttendanceSlotType.istirahatKeluar),
         slotIstirahatMasuk:

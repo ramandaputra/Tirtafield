@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Leaflet OpenStreetMap</title>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    /* Pretty Leaflet Popup Styling */
+    .leaflet-popup-content-wrapper {
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 2px 4px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .leaflet-popup-content {
+      margin: 10px 14px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .leaflet-popup-content b {
+      color: #38bdf8;
+      font-size: 13px;
+    }
+    .leaflet-popup-tip {
+      background: #0f172a;
+    }
+    .leaflet-control-attribution {
+      font-size: 9.5px !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      border-radius: 4px;
+      padding: 2px 5px !important;
+    }
+    .btn-recenter {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 1000;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      transition: all 0.2s ease;
+    }
+    .btn-recenter:hover {
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <button class="btn-recenter" onclick="recenterMap()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+    Lokasi Saya
+  </button>
+
+  <script>
+    var map;
+    var marker;
+    var circle;
+    var currentLat = 0.92031;
+    var currentLng = 104.46069;
+
+    function getParam(name, def) {
+      var urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name) || def;
+    }
+
+    var lat = parseFloat(getParam('lat', '0.92031'));
+    var lng = parseFloat(getParam('lng', '104.46069'));
+    var zoom = parseInt(getParam('zoom', '16'));
+    var popupText = decodeURIComponent(getParam('popup', '<b>Kantor Tirtafield Tanjung Pinang</b><br>Tj. Pinang Timur, Kota Tanjung Pinang<br>Plus Code: WFC6+47'));
+
+    currentLat = lat;
+    currentLng = lng;
+
+    // Persis kode Leaflet yang diminta:
+    // var map = L.map('map').setView([lat, lng], zoom);
+    // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    // }).addTo(map);
+    // L.marker([lat, lng]).addTo(map).bindPopup(...).openPopup();
+
+    map = L.map('map', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([lat, lng], zoom);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Geofence Circle (radius akurasi GPS)
+    circle = L.circle([lat, lng], {
+      color: '#1a73e8',
+      fillColor: '#4285f4',
+      fillOpacity: 0.18,
+      radius: 80
+    }).addTo(map);
+
+    // Marker & Popup persis permintaan user
+    marker = L.marker([lat, lng]).addTo(map);
+    marker.bindPopup(popupText).openPopup();
+
+    function recenterMap() {
+      if (map) {
+        map.setView([currentLat, currentLng], 16, { animate: true });
+        if (marker) marker.openPopup();
+      }
+    }
+
+    // Listener jika koordinat GPS diperbarui dari Flutter
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'UPDATE_LOCATION') {
+        var d = event.data;
+        currentLat = d.lat;
+        currentLng = d.lng;
+        if (map) {
+          map.setView([d.lat, d.lng], d.zoom || map.getZoom() || 16);
+        }
+        if (marker) {
+          marker.setLatLng([d.lat, d.lng]);
+          if (d.popup) {
+            marker.setPopupContent(d.popup).openPopup();
+          }
+        }
+        if (circle) {
+          circle.setLatLng([d.lat, d.lng]);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

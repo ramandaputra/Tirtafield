@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_time_helper.dart';
 import '../../../data/models/attendance_model.dart';
 import '../../../core/services/location_service.dart';
+import '../widgets/leaflet_map_view.dart';
 import 'ambil_foto_absensi_screen.dart';
 
 class VerifikasiLokasiScreen extends StatefulWidget {
@@ -107,9 +110,8 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
         ? _locationResult!.formattedDistanceHq
         : '8.5 km';
     final projectLocation =
-        _locationResult?.locationName ?? 'Area Proyek Sudirman Office Tower';
-    final projectAddress = _locationResult?.address ??
-        'Jl. Jenderal Sudirman Kav. 21, Karet Setiabudi, Jakarta Selatan, DKI Jakarta 12920';
+        _locationResult?.locationName ?? LocationService.hqLocationName;
+    final projectAddress = _locationResult?.address ?? LocationService.hqAddress;
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -390,8 +392,86 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
     final lat = _locationResult?.latitude ?? LocationService.hqLatitude;
     final lng = _locationResult?.longitude ?? LocationService.hqLongitude;
     final zoom = _mapZoom;
+    final popupHtml = '<b>Lokasi Presensi Anda</b><br>'
+        'Koordinat: ${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}<br>'
+        'Akurasi: ${_locationResult?.formattedAccuracy ?? "12 m (Stabil)"}';
 
-    // Hitung posisi tile Mercator untuk koordinat GPS
+    // Jika di Web dan memilih Leaflet OSM (0), gunakan Real Leaflet JS Engine
+    if (kIsWeb && _mapProviderIndex == 0) {
+      return ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        child: Container(
+          height: 250,
+          color: const Color(0xFFE5E3DF),
+          child: Stack(
+            children: [
+              // Real Leaflet JS Map (L.map, L.tileLayer, L.marker, L.popup)
+              Positioned.fill(
+                child: buildLeafletMapView(
+                  lat: lat,
+                  lng: lng,
+                  zoom: zoom,
+                  popupText: popupHtml,
+                ),
+              ),
+
+              // Floating Layer Switcher
+              Positioned(
+                top: 10,
+                left: 10,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _mapProviderIndex = (_mapProviderIndex + 1) % 3;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.public_rounded,
+                            size: 16,
+                            color: Color(0xFF137333),
+                          ),
+                          SizedBox(width: 5),
+                          Text(
+                            'Leaflet OSM',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF202124),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Hitung posisi tile Mercator untuk koordinat GPS (Canvas fallback / Mobile)
     final n = pow(2.0, zoom).toDouble();
     final xExact = ((lng + 180.0) / 360.0) * n;
     final latRad = lat * pi / 180.0;
@@ -444,14 +524,14 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                       final left = originX + (dx * tileSize);
                       final top = originY + (dy * tileSize);
 
-                      final tileUrl = _mapProviderIndex == 1
+                      final tileUrl = _mapProviderIndex == 0
                           ? 'https://tile.openstreetmap.org/$zoom/$currentTileX/$currentTileY.png'
-                          : (_mapProviderIndex == 2
-                              ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$zoom/$currentTileY/$currentTileX'
-                              : 'https://basemaps.cartocdn.com/rastertiles/voyager/$zoom/$currentTileX/$currentTileY.png');
+                          : (_mapProviderIndex == 1
+                              ? ApiConfig.cartoRasterTileUrl(zoom, currentTileX, currentTileY)
+                              : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$zoom/$currentTileY/$currentTileX');
 
-                      final fallbackTileUrl = _mapProviderIndex == 1
-                          ? 'https://basemaps.cartocdn.com/rastertiles/voyager/$zoom/$currentTileX/$currentTileY.png'
+                      final fallbackTileUrl = _mapProviderIndex == 0
+                          ? ApiConfig.cartoRasterTileUrl(zoom, currentTileX, currentTileY)
                           : 'https://tile.openstreetmap.org/$zoom/$currentTileX/$currentTileY.png';
 
                       return Positioned(
@@ -594,21 +674,21 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                _mapProviderIndex == 1
+                                _mapProviderIndex == 0
                                     ? Icons.public_rounded
-                                    : (_mapProviderIndex == 2
-                                        ? Icons.satellite_alt_rounded
-                                        : Icons.layers_rounded),
+                                    : (_mapProviderIndex == 1
+                                        ? Icons.layers_rounded
+                                        : Icons.satellite_alt_rounded),
                                 size: 16,
                                 color: const Color(0xFF1A73E8),
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                _mapProviderIndex == 1
-                                    ? 'OpenStreetMap'
-                                    : (_mapProviderIndex == 2
-                                        ? 'Satelit ArcGIS'
-                                        : 'Peta Jalan'),
+                                _mapProviderIndex == 0
+                                    ? 'Leaflet OSM'
+                                    : (_mapProviderIndex == 1
+                                        ? 'Peta Jalan'
+                                        : 'Satelit ArcGIS'),
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -691,25 +771,25 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            _mapProviderIndex == 1
+                            _mapProviderIndex == 0
                                 ? Icons.public
-                                : (_mapProviderIndex == 2
-                                    ? Icons.satellite_alt
-                                    : Icons.place),
-                            color: _mapProviderIndex == 1
+                                : (_mapProviderIndex == 1
+                                    ? Icons.place
+                                    : Icons.satellite_alt),
+                            color: _mapProviderIndex == 0
                                 ? const Color(0xFF137333)
-                                : (_mapProviderIndex == 2
-                                    ? const Color(0xFF1A73E8)
-                                    : const Color(0xFFEA4335)),
+                                : (_mapProviderIndex == 1
+                                    ? const Color(0xFFEA4335)
+                                    : const Color(0xFF1A73E8)),
                             size: 13,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            _mapProviderIndex == 1
-                                ? 'OpenStreetMap'
-                                : (_mapProviderIndex == 2
-                                    ? 'ArcGIS Satellite'
-                                    : 'Google Maps View'),
+                            _mapProviderIndex == 0
+                                ? 'Leaflet OpenStreetMap'
+                                : (_mapProviderIndex == 1
+                                    ? 'Carto Voyager'
+                                    : 'ArcGIS Satellite'),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -835,7 +915,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                     ],
                   ),
                   Text(
-                    'Geo-Tag: ${_locationResult?.formattedCoordinates ?? '-6.2146, 106.8219'}',
+                    'Geo-Tag: ${_locationResult?.formattedCoordinates ?? '0.9203, 104.4607'}',
                     style: const TextStyle(
                       fontSize: 10,
                       fontFamily: 'monospace',
@@ -853,9 +933,8 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
 
   // 3. FIELD WORK LOCATION DETAILS CARD
   Widget _buildLocationDetailsCard() {
-    final locationName = _locationResult?.locationName ?? 'Area Proyek Sudirman Office Tower';
-    final address = _locationResult?.address ??
-        'Jl. Jenderal Sudirman Kav. 21, Karet Setiabudi, Jakarta Selatan, DKI Jakarta 12920';
+    final locationName = _locationResult?.locationName ?? LocationService.hqLocationName;
+    final address = _locationResult?.address ?? LocationService.hqAddress;
 
     return Container(
       padding: const EdgeInsets.all(16),

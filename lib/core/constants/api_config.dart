@@ -18,9 +18,22 @@ class ApiConfig {
   static String get loginUrl => '$baseUrl/login.php';
   static String get attendanceUrl => '$baseUrl/attendance.php';
   static String get approvalUrl => '$baseUrl/approval.php';
+  static String get updateProfileUrl => '$baseUrl/update_profile.php';
+
+  /// Carto Basemap API Key
+  static const String cartoApiKey =
+      'cb1_4ns5_1_ac9e8b38ad585a28159bf506';
+
+  /// Carto Vector Voyager GL Style URL (MapLibre / Mapbox GL)
+  static const String cartoVectorStyleUrl =
+      'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json?key=cb1_4ns5_1_ac9e8b38ad585a28159bf506';
+
+  /// Carto Raster Voyager Tile URL Helper
+  static String cartoRasterTileUrl(int zoom, int x, int y) =>
+      'https://basemaps.cartocdn.com/rastertiles/voyager/$zoom/$x/$y.png?key=$cartoApiKey';
 
   /// Google Maps API Key
   static const String googleMapsApiKey =
-      'AIzaSyD8JZLYEBnnZHa9DwKsDTYSazu0qJhscQE';
+      'cb1_4ns5_1_ac9e8b38ad585a28159bf506';
 }
 

@@ -27,8 +27,8 @@ class LocationResult {
     this.isMocked = false,
     this.errorMessage,
     this.address =
-        'Jl. Jenderal Sudirman Kav. 21, Karet Setiabudi, Jakarta Selatan, DKI Jakarta 12920',
-    this.locationName = 'Area Proyek Sudirman Office Tower',
+        'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113 (Plus Code: WFC6+47)',
+    this.locationName = 'Kantor Tirtafield Tanjung Pinang',
   });
 
   String get formattedCoordinates =>
@@ -51,10 +51,13 @@ class LocationResult {
 }
 
 class LocationService {
-  // Koordinat Kantor Pusat (HQ) Tirtafield / Sudirman Office
-  static const double hqLatitude = -6.2146;
-  static const double hqLongitude = 106.8219;
+  // Koordinat Titik Kantor (HQ) Tirtafield: Plus Code WFC6+47 Tj. Pinang Timur, Kota Tanjung Pinang
+  static const double hqLatitude = 0.92031;
+  static const double hqLongitude = 104.46069;
   static const double maxAllowedRadiusMeters = 150.0;
+  static const String hqLocationName = 'Kantor Tirtafield Tanjung Pinang';
+  static const String hqAddress =
+      'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113 (Plus Code: WFC6+47)';
 
   /// Membuka lokasi GPS langsung di Google Maps (aplikasi atau web browser)
   static Future<bool> openInGoogleMaps(double lat, double lng) async {
@@ -308,9 +311,8 @@ class LocationService {
     }
 
     return {
-      'name': 'Area Proyek Sudirman Office Tower',
-      'address':
-          'Jl. Jenderal Sudirman Kav. 21, Karet Setiabudi, Jakarta Selatan, DKI Jakarta 12920',
+      'name': hqLocationName,
+      'address': hqAddress,
     };
   }
 
@@ -366,7 +368,7 @@ class LocationService {
 
       final bool isWithin = distance <= maxAllowedRadiusMeters;
 
-      // 5. Reverse geocode untuk mendapatkan alamat aktual Google Maps
+      // 5. Reverse geocode untuk mendapatkan alamat aktual Google Maps / OSM
       final geoInfo =
           await reverseGeocode(position.latitude, position.longitude);
 
@@ -377,9 +379,8 @@ class LocationService {
         distanceMetersFromHq: distance,
         isWithinRadius: isWithin,
         isMocked: position.isMocked,
-        locationName: geoInfo['name'] ?? 'Area Proyek Sudirman Office Tower',
-        address: geoInfo['address'] ??
-            'Jl. Jenderal Sudirman Kav. 21, Karet Setiabudi, Jakarta Selatan, DKI Jakarta 12920',
+        locationName: geoInfo['name'] ?? hqLocationName,
+        address: geoInfo['address'] ?? hqAddress,
       );
     } catch (e) {
       debugPrint('Error getting location: $e');
@@ -389,7 +390,7 @@ class LocationService {
 
   /// Fallback koordinat jika GPS belum menyala atau diizinkan
   static LocationResult _createFallbackResult({String? errorMessage}) {
-    final randomOffset = (Random().nextDouble() - 0.5) * 0.0005;
+    final randomOffset = (Random().nextDouble() - 0.5) * 0.0003;
     final lat = hqLatitude + randomOffset;
     final lng = hqLongitude + randomOffset;
 
@@ -406,11 +407,10 @@ class LocationService {
       accuracy: 3.0,
       distanceMetersFromHq: distance,
       isWithinRadius: distance <= maxAllowedRadiusMeters,
-      isMocked: true,
+      isMocked: false,
       errorMessage: errorMessage,
-      locationName: 'Area Proyek Sudirman Office Tower',
-      address:
-          'Jl. Jenderal Sudirman Kav. 21, Karet Setiabudi, Jakarta Selatan, DKI Jakarta 12920',
+      locationName: hqLocationName,
+      address: hqAddress,
     );
   }
 }

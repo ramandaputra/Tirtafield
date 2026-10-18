@@ -142,6 +142,83 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Update user profile photo (Dapat dilakukan oleh akun user sendiri)
+  Future<bool> updateProfilePhoto(String newAvatarUrl) async {
+    _currentUser = _currentUser.copyWith(avatarUrl: newAvatarUrl);
+    final idx = _availableUsers.indexWhere((u) => u.id == _currentUser.id);
+    if (idx != -1) {
+      _availableUsers[idx] = _currentUser;
+    }
+    notifyListeners();
+
+    try {
+      await http
+          .post(
+            Uri.parse(ApiConfig.updateProfileUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'id': _currentUser.id,
+              'nik': _currentUser.nip,
+              'avatar_url': newAvatarUrl,
+              'actor_role': _currentUser.role.name,
+            }),
+          )
+          .timeout(const Duration(seconds: 4));
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Update user data nama lengkap dan divisi penempatan (HANYA DAPAT DILAKUKAN OLEH SUPERADMIN)
+  Future<bool> updateUserInfoBySuperadmin({
+    required String targetUserId,
+    required String newName,
+    required String newDepartment,
+    String? newPosition,
+    UserRole? newRole,
+  }) async {
+    if (!isStaffIT) {
+      return false;
+    }
+
+    final idx = _availableUsers.indexWhere((u) => u.id == targetUserId);
+    if (idx != -1) {
+      final oldUser = _availableUsers[idx];
+      final updated = oldUser.copyWith(
+        name: newName,
+        department: newDepartment,
+        position: newPosition ?? oldUser.position,
+        role: newRole ?? oldUser.role,
+      );
+      _availableUsers[idx] = updated;
+
+      if (_currentUser.id == targetUserId) {
+        _currentUser = updated;
+      }
+      notifyListeners();
+
+      try {
+        await http
+            .post(
+              Uri.parse(ApiConfig.updateProfileUrl),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'id': targetUserId,
+                'name': newName,
+                'department': newDepartment,
+                'is_superadmin': true,
+                'actor_role': 'staffIT',
+              }),
+            )
+            .timeout(const Duration(seconds: 4));
+      } catch (_) {}
+
+      return true;
+    }
+    return false;
+  }
+
   void addUser(UserModel newUser) {
     _availableUsers.add(newUser);
     notifyListeners();

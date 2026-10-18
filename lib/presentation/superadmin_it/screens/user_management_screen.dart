@@ -97,21 +97,150 @@ class UserManagementScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.switch_account_outlined, color: AppColors.primary),
-                    tooltip: 'Masuk Sebagai User Ini',
-                    onPressed: () {
-                      context.read<AuthProvider>().setCurrentUser(user);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Beralih login ke: ${user.name} (${user.role.displayName})'),
-                        ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_note_rounded, color: AppColors.secondary),
+                        tooltip: 'Edit Data Pengguna (Superadmin)',
+                        onPressed: () => _showEditUserDialog(context, user),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.switch_account_outlined, color: AppColors.primary),
+                        tooltip: 'Masuk Sebagai User Ini',
+                        onPressed: () {
+                          context.read<AuthProvider>().setCurrentUser(user);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Beralih login ke: ${user.name} (${user.role.displayName})'),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showEditUserDialog(BuildContext context, UserModel user) {
+    final nameCtrl = TextEditingController(text: user.name);
+    final deptCtrl = TextEditingController(text: user.department);
+    final posCtrl = TextEditingController(text: user.position);
+    UserRole selectedRole = user.role;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.admin_panel_settings_rounded, color: AppColors.secondary),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Edit Pengguna (Superadmin)',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'NIK / NIP: ${user.nip}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nama Lengkap',
+                      prefixIcon: Icon(Icons.person_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: deptCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Divisi / Penempatan',
+                      prefixIcon: Icon(Icons.business_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: posCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Jabatan (Position)',
+                      prefixIcon: Icon(Icons.badge_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<UserRole>(
+                    initialValue: selectedRole,
+                    decoration: const InputDecoration(
+                      labelText: 'Role Akses',
+                      prefixIcon: Icon(Icons.security_rounded),
+                    ),
+                    items: UserRole.values.map((role) {
+                      return DropdownMenuItem(
+                        value: role,
+                        child: Text(role.displayName),
                       );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedRole = val);
                     },
                   ),
                 ],
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameCtrl.text.trim().isNotEmpty) {
+                    await context.read<AuthProvider>().updateUserInfoBySuperadmin(
+                          targetUserId: user.id,
+                          newName: nameCtrl.text.trim(),
+                          newDepartment: deptCtrl.text.trim(),
+                          newPosition: posCtrl.text.trim(),
+                          newRole: selectedRole,
+                        );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Data ${nameCtrl.text.trim()} berhasil diperbarui oleh Superadmin.'),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: const Text('Simpan Perubahan'),
+              ),
+            ],
           );
         },
       ),

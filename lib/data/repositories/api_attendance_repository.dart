@@ -96,7 +96,7 @@ class ApiAttendanceRepository implements AttendanceRepository {
         'user_id': userId,
         'user_name': userName,
         'slot_type': slotType.name,
-        'location': location ?? 'Area Proyek Sudirman Office Tower',
+        'location': location ?? 'Kantor Tirtafield Tanjung Pinang',
         'notes': notes ?? '',
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,

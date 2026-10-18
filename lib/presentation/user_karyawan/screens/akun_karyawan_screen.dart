@@ -29,18 +29,15 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
   static const String _defaultAvatarUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBHnouN4NhcfWmjDbG_twFO6sebw3bZ18Eh5o0S5X77EHF5sjwqdJN1_ReCmIRAXuAloD9dPZQaPaz6HVgpuNpNvmO58tfZnPqD0S2Or68H_L0RpASTtBWA4c84ApGfNtIT2D9Dp8lVoCp0JDnad7J_CE3txa5AZ09a1vR9wuxu1NBIUFtj4kKAYnne-NzoAjd5q04Al1Cu_2jIhmMuPgiIkaTQw-LExIXsFQapZNGSTxquu43ZR8o';
 
+  UserModel? _lastSyncedUser;
+
   @override
   void initState() {
     super.initState();
     final user = context.read<AuthProvider>().currentUser;
-    _nameController = TextEditingController(
-      text: user.name.isNotEmpty ? user.name : 'SYAKYAKIRTI, S.E., M.M., M.H',
-    );
-    _divisionController = TextEditingController(
-      text: user.department.isNotEmpty
-          ? 'Operasional Lapangan - Area Jakarta Pusat'
-          : 'Operasional Lapangan - Area Jakarta Pusat',
-    );
+    _nameController = TextEditingController(text: user.name);
+    _divisionController = TextEditingController(text: user.department);
+    _lastSyncedUser = user;
 
     _pulseController = AnimationController(
       vsync: this,
@@ -53,6 +50,19 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = context.watch<AuthProvider>().currentUser;
+    if (_lastSyncedUser?.id != user.id ||
+        _lastSyncedUser?.name != user.name ||
+        _lastSyncedUser?.department != user.department) {
+      _nameController.text = user.name;
+      _divisionController.text = user.department;
+      _lastSyncedUser = user;
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _divisionController.dispose();
@@ -60,18 +70,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
     super.dispose();
   }
 
-  void _saveProfile() {
-    final authProv = context.read<AuthProvider>();
-    final currentUser = authProv.currentUser;
-
-    final updatedUser = currentUser.copyWith(
-      name: _nameController.text.trim(),
-      department: _divisionController.text.trim(),
-    );
-
-    authProv.setCurrentUser(updatedUser);
-
-    // Show floating pill toast matching the HTML specification
+  void _showSuccessToast(String message) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -83,23 +82,25 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(50),
         ),
-        content: const Row(
+        content: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle_rounded,
               color: AppColors.tertiaryFixed,
               size: 20,
             ),
-            SizedBox(width: 8),
-            Text(
-              'Profil berhasil diperbarui',
-              style: TextStyle(
-                color: AppColors.inverseOnSurface,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Inter',
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.inverseOnSurface,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Inter',
+                ),
               ),
             ),
           ],
@@ -109,84 +110,230 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
     );
   }
 
+  void _saveProfile() async {
+    final authProv = context.read<AuthProvider>();
+    final isSuperadmin = authProv.isStaffIT;
+    final currentUser = authProv.currentUser;
+
+    if (!isSuperadmin) {
+      _showSuccessToast('Pengaturan preferensi akun Anda berhasil disimpan.');
+      return;
+    }
+
+    final newName = _nameController.text.trim();
+    final newDept = _divisionController.text.trim();
+
+    if (newName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nama lengkap tidak boleh kosong.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    await authProv.updateUserInfoBySuperadmin(
+      targetUserId: currentUser.id,
+      newName: newName,
+      newDepartment: newDept,
+    );
+
+    _showSuccessToast('Data kepegawaian berhasil diperbarui oleh Superadmin.');
+  }
+
   void _showChangePhotoSheet() {
+    final authProv = context.read<AuthProvider>();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Drag handle
               Container(
-                width: 36,
+                width: 38,
                 height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Ganti Foto Profil & Biometrik',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface,
-                  fontFamily: 'Inter',
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Pilih Foto Profil',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurface,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Opsi 1: Ambil Foto
+              InkWell(
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final cameraPhotos = [
+                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+                    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+                  ];
+                  final picked =
+                      cameraPhotos[DateTime.now().second % cameraPhotos.length];
+                  await authProv.updateProfilePhoto(picked);
+                  _showSuccessToast('Foto profil baru berhasil diambil dari kamera.');
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: AppColors.secondary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Ambil Foto',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurface,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Gunakan kamera langsung untuk mengambil foto profil',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.outline,
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainer,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.camera_alt_rounded,
-                      color: AppColors.secondary),
-                ),
-                title: const Text('Ambil Foto Baru (Kamera)'),
-                subtitle: const Text(
-                    'Gunakan wajah jelas untuk verifikasi biometrik'),
-                onTap: () {
+              const SizedBox(height: 10),
+
+              // Opsi 2: Ambil dari Galeri
+              InkWell(
+                onTap: () async {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Kamera biometrik diaktifkan.'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  final galleryPhotos = [
+                    'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+                    'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80',
+                    'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80',
+                  ];
+                  final picked =
+                      galleryPhotos[DateTime.now().minute % galleryPhotos.length];
+                  await authProv.updateProfilePhoto(picked);
+                  _showSuccessToast('Foto profil berhasil dipilih dari galeri.');
                 },
-              ),
-              ListTile(
-                leading: Container(
-                  width: 40,
-                  height: 40,
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceContainer,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.photo_library_rounded,
-                      color: AppColors.secondary),
-                ),
-                title: const Text('Pilih dari Galeri'),
-                subtitle: const Text('Unggah berkas foto formal'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Foto profil berhasil diperbarui.'),
-                      behavior: SnackBarBehavior.floating,
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
                     ),
-                  );
-                },
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.photo_library_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Ambil dari Galeri',
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurface,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Pilih berkas foto dari galeri penyimpanan perangkat',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.outline,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -321,6 +468,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
   Widget build(BuildContext context) {
     final authProv = context.watch<AuthProvider>();
     final user = authProv.currentUser;
+    final isSuperadmin = authProv.isStaffIT;
     final avatarUrl = user.avatarUrl ?? _defaultAvatarUrl;
 
     return SingleChildScrollView(
@@ -337,7 +485,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
               const SizedBox(height: 14),
 
               // 2. FORM SECTION: DETAILED EMPLOYEE DATA
-              _buildFormSection(),
+              _buildFormSection(isSuperadmin),
               const SizedBox(height: 14),
 
               // 3. PREFERENCES & SETTINGS MODULE
@@ -345,7 +493,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
               const SizedBox(height: 16),
 
               // 4. ACTION BUTTONS (SAVE & LOGOUT)
-              _buildActionButtons(authProv),
+              _buildActionButtons(authProv, isSuperadmin),
             ],
           ),
         ),
@@ -397,38 +545,41 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        padding: const EdgeInsets.all(2.5),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.bottomLeft,
-                            end: Alignment.topRight,
-                            colors: [
-                              AppColors.secondary,
-                              AppColors.tertiaryFixedDim,
+                      GestureDetector(
+                        onTap: _showChangePhotoSheet,
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          padding: const EdgeInsets.all(2.5),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              begin: Alignment.bottomLeft,
+                              end: Alignment.topRight,
+                              colors: [
+                                AppColors.secondary,
+                                AppColors.tertiaryFixedDim,
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.secondary.withValues(alpha: 0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
                             ],
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.secondary.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: Image.network(
-                            avatarUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.surfaceContainer,
-                              child: const Icon(
-                                Icons.person,
-                                color: AppColors.primary,
-                                size: 40,
+                          child: ClipOval(
+                            child: Image.network(
+                              avatarUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: AppColors.surfaceContainer,
+                                child: const Icon(
+                                  Icons.person,
+                                  color: AppColors.primary,
+                                  size: 40,
+                                ),
                               ),
                             ),
                           ),
@@ -437,30 +588,39 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                       Positioned(
                         bottom: -2,
                         right: -2,
-                        child: GestureDetector(
-                          onTap: _showChangePhotoSheet,
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryContainer,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.surfaceContainerLowest,
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.15),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
+                        child: Tooltip(
+                          message: 'Ubah Foto Profil',
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: _showChangePhotoSheet,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Ink(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.surfaceContainerLowest,
+                                    width: 2.2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.18),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.photo_camera_rounded,
-                              size: 15,
-                              color: Colors.white,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.photo_camera_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -597,7 +757,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
   }
 
   // 2. FORM SECTION: DETAILED EMPLOYEE DATA
-  Widget _buildFormSection() {
+  Widget _buildFormSection(bool isSuperadmin) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -633,40 +793,134 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceContainer,
+                  color: isSuperadmin
+                      ? const Color(0xFFEFF6FF)
+                      : AppColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'Presensi Mobile',
+                child: Text(
+                  isSuperadmin ? 'Mode Superadmin' : 'Presensi Mobile',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.secondary,
+                    color: isSuperadmin
+                        ? const Color(0xFF2563EB)
+                        : AppColors.secondary,
                     fontFamily: 'Inter',
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // Banner Status Hak Akses Edit
+          if (!isSuperadmin)
+            Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.lock_rounded,
+                    color: Color(0xFFD97706),
+                    size: 18,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Nama lengkap dan divisi penempatan dikunci. Data ini hanya dapat diubah oleh Superadmin Pusimpel.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF92400E),
+                        fontFamily: 'Inter',
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: Color(0xFF2563EB),
+                    size: 18,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Akses Superadmin Aktif: Anda berwenang mengubah Nama Lengkap dan Divisi Penempatan karyawan.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E40AF),
+                        fontFamily: 'Inter',
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           // Field 1: Nama Lengkap
-          const Text(
-            'Nama Lengkap',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.onSurface,
-              fontFamily: 'Inter',
-            ),
+          Row(
+            children: [
+              const Text(
+                'Nama Lengkap',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(width: 6),
+              if (!isSuperadmin)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'Terkunci',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 6),
           TextFormField(
             controller: _nameController,
-            style: const TextStyle(
+            readOnly: !isSuperadmin,
+            style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w500,
-              color: AppColors.onSurface,
+              color: !isSuperadmin
+                  ? AppColors.onSurface.withValues(alpha: 0.75)
+                  : AppColors.onSurface,
               fontFamily: 'Inter',
             ),
             decoration: InputDecoration(
@@ -675,8 +929,24 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                 size: 20,
                 color: AppColors.onSurfaceVariant,
               ),
+              suffixIcon: !isSuperadmin
+                  ? const Tooltip(
+                      message: 'Hanya dapat diubah oleh Superadmin',
+                      child: Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: AppColors.outline,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.edit_rounded,
+                      size: 18,
+                      color: AppColors.secondary,
+                    ),
               filled: true,
-              fillColor: AppColors.background,
+              fillColor: !isSuperadmin
+                  ? const Color(0xFFF8FAFC)
+                  : AppColors.background,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
@@ -703,22 +973,46 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
           const SizedBox(height: 14),
 
           // Field 2: Divisi & Penempatan Cabang
-          const Text(
-            'Divisi & Penempatan Cabang',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.onSurface,
-              fontFamily: 'Inter',
-            ),
+          Row(
+            children: [
+              const Text(
+                'Divisi & Penempatan Cabang',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(width: 6),
+              if (!isSuperadmin)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'Terkunci',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 6),
           TextFormField(
             controller: _divisionController,
-            style: const TextStyle(
+            readOnly: !isSuperadmin,
+            style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w500,
-              color: AppColors.onSurface,
+              color: !isSuperadmin
+                  ? AppColors.onSurface.withValues(alpha: 0.75)
+                  : AppColors.onSurface,
               fontFamily: 'Inter',
             ),
             decoration: InputDecoration(
@@ -727,8 +1021,24 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                 size: 20,
                 color: AppColors.onSurfaceVariant,
               ),
+              suffixIcon: !isSuperadmin
+                  ? const Tooltip(
+                      message: 'Hanya dapat diubah oleh Superadmin',
+                      child: Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: AppColors.outline,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.edit_rounded,
+                      size: 18,
+                      color: AppColors.secondary,
+                    ),
               filled: true,
-              fillColor: AppColors.background,
+              fillColor: !isSuperadmin
+                  ? const Color(0xFFF8FAFC)
+                  : AppColors.background,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
@@ -923,46 +1233,48 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
   }
 
   // 4. ACTION BUTTONS (SAVE & LOGOUT)
-  Widget _buildActionButtons(AuthProvider authProv) {
+  Widget _buildActionButtons(AuthProvider authProv, bool isSuperadmin) {
     return Column(
       children: [
-        // Primary Button: Simpan Perubahan
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: _saveProfile,
-            icon: const Icon(
-              Icons.save_rounded,
-              size: 20,
-              color: Colors.white,
-            ),
-            label: const Text(
-              'Simpan Perubahan',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+        // Hanya Superadmin yang memiliki tombol simpan data (karena nama & divisi dapat diedit)
+        if (isSuperadmin) ...[
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _saveProfile,
+              icon: const Icon(
+                Icons.save_rounded,
+                size: 20,
                 color: Colors.white,
-                fontFamily: 'Inter',
               ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryContainer,
-              foregroundColor: Colors.white,
-              elevation: 2,
-              shadowColor: AppColors.primaryContainer.withValues(alpha: 0.4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+              label: const Text(
+                'Simpan Perubahan Data (Superadmin)',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryContainer,
+                foregroundColor: Colors.white,
+                elevation: 2,
+                shadowColor: AppColors.primaryContainer.withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
+        ],
 
-        // Secondary Button: Keluar dari Akun
+        // Tombol Keluar dari Akun
         SizedBox(
           width: double.infinity,
-          height: 44,
+          height: 46,
           child: OutlinedButton.icon(
             onPressed: () => _showLogoutDialog(authProv),
             icon: const Icon(
@@ -973,7 +1285,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
             label: const Text(
               'Keluar dari Akun',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 13.5,
                 fontWeight: FontWeight.w700,
                 color: AppColors.error,
                 fontFamily: 'Inter',

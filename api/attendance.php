@@ -66,10 +66,10 @@ if ($action === 'today') {
     $userName  = $input['user_name'] ?? '';
     $userNup   = $input['user_nup'] ?? '';
     $slotType  = $input['slot_type'] ?? 'masuk';
-    $location  = $input['location'] ?? 'Area Proyek Sudirman Office Tower';
-    $latitude  = isset($input['latitude']) && is_numeric($input['latitude']) ? (float)$input['latitude'] : null;
-    $longitude = isset($input['longitude']) && is_numeric($input['longitude']) ? (float)$input['longitude'] : null;
-    $alamat    = $input['alamat'] ?? 'Jl. Jenderal Sudirman Kav. 21, Jakarta Selatan';
+    $location  = $input['location'] ?? 'Kantor Tirtafield Tanjung Pinang';
+    $latitude  = isset($input['latitude']) && is_numeric($input['latitude']) ? (float)$input['latitude'] : 0.92031;
+    $longitude = isset($input['longitude']) && is_numeric($input['longitude']) ? (float)$input['longitude'] : 104.46069;
+    $alamat    = $input['alamat'] ?? 'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113';
     $jarakHq   = $input['jarak_hq'] ?? '8.5 km';
     $fotoUrl   = $input['foto_url'] ?? '';
     $biometric = (float)($input['biometric_score'] ?? 99.4);
