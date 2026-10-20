@@ -245,7 +245,7 @@ class _HomeKaryawanScreenState extends State<HomeKaryawanScreen> {
     );
   }
 
-  // BERANDA CONTENT (Hero Clock + 4 Sesi Absensi)
+  // BERANDA CONTENT (Hero Clock + 4 Sesi Presensi)
   Widget _buildBerandaContent(BuildContext context, UserModel user) {
     return RefreshIndicator(
       onRefresh: () async {

@@ -343,76 +343,288 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
   }
 
   void _showChangePinDialog() {
-    final pinController = TextEditingController();
+    final oldPinController = TextEditingController();
+    final newPinController = TextEditingController();
+    final confirmPinController = TextEditingController();
+
+    bool obscureOld = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+    String? errorMessage;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceContainerLowest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          'Ubah PIN Presensi',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.onSurface,
-            fontFamily: 'Inter',
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Masukkan 6 digit PIN baru untuk keamanan autentikasi presensi Anda:',
-              style:
-                  TextStyle(fontSize: 12.5, color: AppColors.onSurfaceVariant),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: AppColors.surfaceContainerLowest,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.lock_reset_rounded, color: AppColors.secondary, size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'Ubah PIN Presensi',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.onSurface,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: pinController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: 'PIN Baru (6 digit)',
-                prefixIcon:
-                    const Icon(Icons.pin_rounded, color: AppColors.secondary),
-                counterText: '',
-                fillColor: AppColors.background,
-                filled: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.outlineVariant),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Masukkan PIN lama Anda terlebih dahulu untuk verifikasi keamanan sebelum menetapkan PIN baru:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.onSurfaceVariant,
+                        fontFamily: 'Inter',
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Kotak Pesan Error (Jika ada)
+                    if (errorMessage != null) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF2F2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              color: AppColors.error,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                errorMessage!,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFB91C1C),
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Field 1: PIN Lama
+                    const Text(
+                      'PIN Lama',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.onSurface,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    TextField(
+                      controller: oldPinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      obscureText: obscureOld,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Inter',
+                        letterSpacing: 3,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'PIN Lama (6 digit)',
+                        hintStyle: const TextStyle(letterSpacing: 0, fontSize: 12),
+                        prefixIcon: const Icon(Icons.lock_clock_rounded, color: AppColors.secondary, size: 20),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureOld ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            size: 18,
+                            color: AppColors.outline,
+                          ),
+                          onPressed: () => setDialogState(() => obscureOld = !obscureOld),
+                        ),
+                        counterText: '',
+                        fillColor: AppColors.background,
+                        filled: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Field 2: PIN Baru
+                    const Text(
+                      'PIN Baru',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.onSurface,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    TextField(
+                      controller: newPinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      obscureText: obscureNew,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Inter',
+                        letterSpacing: 3,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'PIN Baru (6 digit)',
+                        hintStyle: const TextStyle(letterSpacing: 0, fontSize: 12),
+                        prefixIcon: const Icon(Icons.pin_rounded, color: AppColors.secondary, size: 20),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureNew ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            size: 18,
+                            color: AppColors.outline,
+                          ),
+                          onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                        ),
+                        counterText: '',
+                        fillColor: AppColors.background,
+                        filled: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Field 3: Konfirmasi PIN Baru
+                    const Text(
+                      'Konfirmasi PIN Baru',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.onSurface,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    TextField(
+                      controller: confirmPinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      obscureText: obscureConfirm,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Inter',
+                        letterSpacing: 3,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Konfirmasi PIN Baru (6 digit)',
+                        hintStyle: const TextStyle(letterSpacing: 0, fontSize: 12),
+                        prefixIcon: const Icon(Icons.verified_user_outlined, color: AppColors.secondary, size: 20),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscureConfirm ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            size: 18,
+                            color: AppColors.outline,
+                          ),
+                          onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                        ),
+                        counterText: '',
+                        fillColor: AppColors.background,
+                        filled: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('PIN Presensi berhasil diubah.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Batal', style: TextStyle(fontFamily: 'Inter')),
               ),
-            ),
-            child: const Text('Simpan PIN'),
-          ),
-        ],
+              ElevatedButton(
+                onPressed: () async {
+                  final oldPin = oldPinController.text.trim();
+                  final newPin = newPinController.text.trim();
+                  final confirmPin = confirmPinController.text.trim();
+
+                  if (oldPin.isEmpty) {
+                    setDialogState(() => errorMessage = 'PIN lama wajib diisi.');
+                    return;
+                  }
+                  if (newPin.isEmpty) {
+                    setDialogState(() => errorMessage = 'PIN baru wajib diisi.');
+                    return;
+                  }
+                  if (newPin.length < 6) {
+                    setDialogState(() => errorMessage = 'PIN baru harus 6 digit angka.');
+                    return;
+                  }
+                  if (newPin == oldPin) {
+                    setDialogState(() => errorMessage = 'PIN baru tidak boleh sama dengan PIN lama.');
+                    return;
+                  }
+                  if (newPin != confirmPin) {
+                    setDialogState(() => errorMessage = 'Konfirmasi PIN baru tidak sesuai.');
+                    return;
+                  }
+
+                  final authProv = context.read<AuthProvider>();
+                  final success = await authProv.changePin(oldPin: oldPin, newPin: newPin);
+                  if (!success) {
+                    setDialogState(() => errorMessage = 'PIN lama tidak sesuai. Silakan periksa kembali.');
+                    return;
+                  }
+
+                  if (context.mounted) {
+                    Navigator.pop(ctx);
+                    _showSuccessToast('PIN Presensi berhasil diperbarui.');
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'Simpan PIN Baru',
+                  style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -682,6 +894,8 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                         const SizedBox(height: 2),
                         Text(
                           '${user.department.isNotEmpty ? user.department : 'Product & Tech'} - ${user.position.isNotEmpty ? user.position : 'Staff Lapangan'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.onSurfaceVariant,
@@ -758,6 +972,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
 
   // 2. FORM SECTION: DETAILED EMPLOYEE DATA
   Widget _buildFormSection(bool isSuperadmin) {
+    final user = context.watch<AuthProvider>().currentUser;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -780,15 +995,20 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Informasi Kepegawaian',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                  fontFamily: 'Inter',
+              const Expanded(
+                child: Text(
+                  'Informasi Kepegawaian',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                    fontFamily: 'Inter',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -814,82 +1034,21 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
           ),
           const SizedBox(height: 14),
 
-          // Banner Status Hak Akses Edit
-          if (!isSuperadmin)
-            Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFDE68A)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.lock_rounded,
-                    color: Color(0xFFD97706),
-                    size: 18,
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Nama lengkap dan divisi penempatan dikunci. Data ini hanya dapat diubah oleh Superadmin Pusimpel.',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF92400E),
-                        fontFamily: 'Inter',
-                        height: 1.3,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFBFDBFE)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.admin_panel_settings_rounded,
-                    color: Color(0xFF2563EB),
-                    size: 18,
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Akses Superadmin Aktif: Anda berwenang mengubah Nama Lengkap dan Divisi Penempatan karyawan.',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1E40AF),
-                        fontFamily: 'Inter',
-                        height: 1.3,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
           // Field 1: Nama Lengkap
           Row(
             children: [
-              const Text(
-                'Nama Lengkap',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
-                  fontFamily: 'Inter',
+              const Flexible(
+                child: Text(
+                  'Nama Lengkap',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                    fontFamily: 'Inter',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 6),
@@ -975,13 +1134,17 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
           // Field 2: Divisi & Penempatan Cabang
           Row(
             children: [
-              const Text(
-                'Divisi & Penempatan Cabang',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
-                  fontFamily: 'Inter',
+              const Flexible(
+                child: Text(
+                  'Divisi & Penempatan Cabang',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                    fontFamily: 'Inter',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 6),
@@ -1064,11 +1227,103 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
           ),
           const SizedBox(height: 5),
           const Text(
-            'Menentukan radius geofence absensi GPS perangkat Anda.',
+            'Menentukan radius batas wilayah (geofence) presensi GPS perangkat Anda.',
             style: TextStyle(
               fontSize: 11,
               color: AppColors.onSurfaceVariant,
               fontFamily: 'Inter',
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Field: Kantor Penempatan (Titik Acuan Radius)
+          Row(
+            children: [
+              const Flexible(
+                child: Text(
+                  'Kantor Penempatan (Acuan Radius Presensi)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurface,
+                    fontFamily: 'Inter',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Terkunci',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.apartment_rounded,
+                  size: 20,
+                  color: AppColors.secondary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.officeName.isNotEmpty
+                            ? user.officeName
+                            : 'Kantor Pusat Tirtafield Tanjung Pinang',
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Titik acuan perhitungan jarak dan radius presensi saat di lapangan',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.onSurfaceVariant,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Tooltip(
+                  message: 'Ditetapkan oleh Superadmin',
+                  child: Icon(
+                    Icons.verified_rounded,
+                    size: 18,
+                    color: AppColors.secondary,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 14),
@@ -1195,7 +1450,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Notifikasi Pengingat Absen',
+                      'Notifikasi Pengingat Presensi',
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
@@ -1258,10 +1513,10 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryContainer,
+                backgroundColor: AppColors.secondary,
                 foregroundColor: Colors.white,
                 elevation: 2,
-                shadowColor: AppColors.primaryContainer.withValues(alpha: 0.4),
+                shadowColor: AppColors.secondary.withValues(alpha: 0.35),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),

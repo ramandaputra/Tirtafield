@@ -49,6 +49,14 @@ if ($isSuperadmin) {
         $updateFields[] = "pin = :pin";
         $params['pin'] = (int)trim($input['pin']);
     }
+    if (!empty($input['office_id'])) {
+        $updateFields[] = "office_id = :office_id";
+        $params['office_id'] = trim($input['office_id']);
+    }
+    if (!empty($input['office_name'])) {
+        $updateFields[] = "office_name = :office_name";
+        $params['office_name'] = trim($input['office_name']);
+    }
 } else {
     // Jika pengguna bukan superadmin mencoba merubah nama lengkap atau divisi
     $attemptNameChange = isset($input['name']) && trim($input['name']) !== trim((string)$emp['pgw_nama']);
@@ -60,7 +68,7 @@ if ($isSuperadmin) {
 }
 
 if (!empty($updateFields)) {
-    $sql = "UPDATE employee SET " . implode(', ', $updateFields) . " WHERE pgw_id = :id";
+    $sql = "UPDATE employee SET " . implode(', ', $updateCols ?? $updateFields) . " WHERE pgw_id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 }
@@ -71,9 +79,11 @@ $stmt->execute(['id' => $emp['pgw_id']]);
 $updatedEmp = $stmt->fetch();
 
 sendResponse(true, [
-    'id'         => (string)$updatedEmp['pgw_id'],
-    'nip'        => (string)($updatedEmp['pgw_nup'] ?? ''),
-    'name'       => (string)$updatedEmp['pgw_nama'],
-    'department' => (string)($updatedEmp['occ_add_desc'] ?? ''),
-    'avatar_url' => (string)($updatedEmp['avatar_url'] ?? ''),
+    'id'          => (string)$updatedEmp['pgw_id'],
+    'nip'         => (string)($updatedEmp['pgw_nup'] ?? ''),
+    'name'        => (string)$updatedEmp['pgw_nama'],
+    'department'  => (string)($updatedEmp['occ_add_desc'] ?? ''),
+    'office_id'   => (string)($updatedEmp['office_id'] ?? 'hq'),
+    'office_name' => (string)($updatedEmp['office_name'] ?? 'Kantor Pusat Tirtafield Tanjung Pinang'),
+    'avatar_url'  => (string)($updatedEmp['avatar_url'] ?? ''),
 ], 'Profil berhasil diperbarui.');

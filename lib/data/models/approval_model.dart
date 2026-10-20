@@ -1,18 +1,16 @@
 enum ApprovalType {
-  cuti('Cuti Tahunan'),
-  izin('Izin Tidak Masuk'),
-  sakit('Surat Sakit'),
-  lembur('Pengajuan Lembur'),
-  koreksiAbsen('Koreksi Absensi');
+  koreksiAbsen('Koreksi Presensi'),
+  luarRadius('Presensi Luar Radius / Lapangan');
 
   final String label;
   const ApprovalType(this.label);
 }
 
 enum ApprovalStatus {
-  pending('Menunggu', 'Menunggu persetujuan Direktur'),
-  approved('Disetujui', 'Telah disetujui oleh Direktur'),
-  rejected('Ditolak', 'Permohonan ditolak');
+  pending('Menunggu', 'Menunggu persetujuan Admin (Tingkat 1)'),
+  approved('Disetujui', 'Telah disetujui'),
+  rejected('Ditolak', 'Permohonan ditolak'),
+  escalated('Eskalasi', 'Diteruskan ke Superadmin IT');
 
   final String label;
   final String description;
@@ -35,6 +33,15 @@ class ApprovalRequest {
   final String? reviewedBy;
   final DateTime? reviewedAt;
   final String? reviewNotes;
+  final String? fotoUrl;
+  final String? locationName;
+  final double? latitude;
+  final double? longitude;
+  final String? distanceHq;
+  final String? officePlacement;
+  final String? userNip;
+  final bool isLate;
+  final String? attendanceTime;
 
   const ApprovalRequest({
     required this.id,
@@ -52,11 +59,30 @@ class ApprovalRequest {
     this.reviewedBy,
     this.reviewedAt,
     this.reviewNotes,
+    this.fotoUrl,
+    this.locationName,
+    this.latitude,
+    this.longitude,
+    this.distanceHq,
+    this.officePlacement = 'Kantor Pusat Tanjung Pinang',
+    this.userNip,
+    this.isLate = false,
+    this.attendanceTime,
   });
 
   bool get isPending => status == ApprovalStatus.pending;
   bool get isApproved => status == ApprovalStatus.approved;
   bool get isRejected => status == ApprovalStatus.rejected;
+  bool get isEscalated => status == ApprovalStatus.escalated;
+
+  String get distancePlacementOffice {
+    final dist = distanceHq ?? '4.2 km';
+    final office = officePlacement ?? 'Kantor Pusat Tanjung Pinang';
+    if (dist.toLowerCase().contains('kantor') || dist.toLowerCase().contains('dari')) {
+      return dist;
+    }
+    return '$dist dari kantor penempatan ($office)';
+  }
 
   ApprovalRequest copyWith({
     String? id,
@@ -74,6 +100,15 @@ class ApprovalRequest {
     String? reviewedBy,
     DateTime? reviewedAt,
     String? reviewNotes,
+    String? fotoUrl,
+    String? locationName,
+    double? latitude,
+    double? longitude,
+    String? distanceHq,
+    String? officePlacement,
+    String? userNip,
+    bool? isLate,
+    String? attendanceTime,
   }) {
     return ApprovalRequest(
       id: id ?? this.id,
@@ -91,6 +126,15 @@ class ApprovalRequest {
       reviewedBy: reviewedBy ?? this.reviewedBy,
       reviewedAt: reviewedAt ?? this.reviewedAt,
       reviewNotes: reviewNotes ?? this.reviewNotes,
+      fotoUrl: fotoUrl ?? this.fotoUrl,
+      locationName: locationName ?? this.locationName,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      distanceHq: distanceHq ?? this.distanceHq,
+      officePlacement: officePlacement ?? this.officePlacement,
+      userNip: userNip ?? this.userNip,
+      isLate: isLate ?? this.isLate,
+      attendanceTime: attendanceTime ?? this.attendanceTime,
     );
   }
 }

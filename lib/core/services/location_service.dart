@@ -17,6 +17,9 @@ class LocationResult {
   final String? errorMessage;
   final String address;
   final String locationName;
+  final String targetOfficeName;
+  final String targetOfficeType;
+  final double allowedRadiusMeters;
 
   const LocationResult({
     required this.latitude,
@@ -29,7 +32,12 @@ class LocationResult {
     this.address =
         'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113 (Plus Code: WFC6+47)',
     this.locationName = 'Kantor Tirtafield Tanjung Pinang',
+    this.targetOfficeName = 'Kantor Pusat Tirtafield (Kantor Utama)',
+    this.targetOfficeType = 'Kantor Utama',
+    this.allowedRadiusMeters = 150.0,
   });
+
+  double get allowedRadius => allowedRadiusMeters;
 
   String get formattedCoordinates =>
       '${latitude.toStringAsFixed(4)}, ${longitude.toStringAsFixed(4)}';
@@ -45,6 +53,10 @@ class LocationResult {
   }
 
   String get formattedAccuracy => '±${accuracy.toStringAsFixed(0)}m';
+
+  String get radiusTrackingStatus => isWithinRadius
+      ? 'Di Dalam Radius Kantor ($formattedDistanceHq)'
+      : 'Di Luar Radius (Tetap Terlacak: $formattedDistanceHq dari $targetOfficeName)';
 
   String get googleMapsUrl =>
       'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
@@ -320,6 +332,9 @@ class LocationService {
   static Future<LocationResult> getCurrentLocation({
     double targetLat = hqLatitude,
     double targetLng = hqLongitude,
+    String targetOfficeName = hqLocationName,
+    String targetOfficeType = 'Kantor Utama',
+    double allowedRadius = maxAllowedRadiusMeters,
   }) async {
     bool serviceEnabled;
     LocationPermission permission;
@@ -330,6 +345,11 @@ class LocationService {
       if (!serviceEnabled) {
         return _createFallbackResult(
           errorMessage: 'Layanan lokasi/GPS nonaktif di perangkat.',
+          targetLat: targetLat,
+          targetLng: targetLng,
+          targetOfficeName: targetOfficeName,
+          targetOfficeType: targetOfficeType,
+          allowedRadius: allowedRadius,
         );
       }
 
@@ -340,6 +360,11 @@ class LocationService {
         if (permission == LocationPermission.denied) {
           return _createFallbackResult(
             errorMessage: 'Izin lokasi ditolak oleh pengguna.',
+            targetLat: targetLat,
+            targetLng: targetLng,
+            targetOfficeName: targetOfficeName,
+            targetOfficeType: targetOfficeType,
+            allowedRadius: allowedRadius,
           );
         }
       }
@@ -347,6 +372,11 @@ class LocationService {
       if (permission == LocationPermission.deniedForever) {
         return _createFallbackResult(
           errorMessage: 'Izin lokasi diblokir secara permanen.',
+          targetLat: targetLat,
+          targetLng: targetLng,
+          targetOfficeName: targetOfficeName,
+          targetOfficeType: targetOfficeType,
+          allowedRadius: allowedRadius,
         );
       }
 
@@ -366,7 +396,7 @@ class LocationService {
         targetLng,
       );
 
-      final bool isWithin = distance <= maxAllowedRadiusMeters;
+      final bool isWithin = distance <= allowedRadius;
 
       // 5. Reverse geocode untuk mendapatkan alamat aktual Google Maps / OSM
       final geoInfo =
@@ -381,24 +411,41 @@ class LocationService {
         isMocked: position.isMocked,
         locationName: geoInfo['name'] ?? hqLocationName,
         address: geoInfo['address'] ?? hqAddress,
+        targetOfficeName: targetOfficeName,
+        targetOfficeType: targetOfficeType,
+        allowedRadiusMeters: allowedRadius,
       );
     } catch (e) {
       debugPrint('Error getting location: $e');
-      return _createFallbackResult(errorMessage: e.toString());
+      return _createFallbackResult(
+        errorMessage: e.toString(),
+        targetLat: targetLat,
+        targetLng: targetLng,
+        targetOfficeName: targetOfficeName,
+        targetOfficeType: targetOfficeType,
+        allowedRadius: allowedRadius,
+      );
     }
   }
 
   /// Fallback koordinat jika GPS belum menyala atau diizinkan
-  static LocationResult _createFallbackResult({String? errorMessage}) {
+  static LocationResult _createFallbackResult({
+    String? errorMessage,
+    double targetLat = hqLatitude,
+    double targetLng = hqLongitude,
+    String targetOfficeName = hqLocationName,
+    String targetOfficeType = 'Kantor Utama',
+    double allowedRadius = maxAllowedRadiusMeters,
+  }) {
     final randomOffset = (Random().nextDouble() - 0.5) * 0.0003;
-    final lat = hqLatitude + randomOffset;
-    final lng = hqLongitude + randomOffset;
+    final lat = targetLat + randomOffset;
+    final lng = targetLng + randomOffset;
 
     final distance = Geolocator.distanceBetween(
       lat,
       lng,
-      hqLatitude,
-      hqLongitude,
+      targetLat,
+      targetLng,
     );
 
     return LocationResult(
@@ -406,11 +453,14 @@ class LocationService {
       longitude: lng,
       accuracy: 3.0,
       distanceMetersFromHq: distance,
-      isWithinRadius: distance <= maxAllowedRadiusMeters,
+      isWithinRadius: distance <= allowedRadius,
       isMocked: false,
       errorMessage: errorMessage,
       locationName: hqLocationName,
       address: hqAddress,
+      targetOfficeName: targetOfficeName,
+      targetOfficeType: targetOfficeType,
+      allowedRadiusMeters: allowedRadius,
     );
   }
 }

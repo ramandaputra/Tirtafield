@@ -370,15 +370,119 @@ class _LoginScreenState extends State<LoginScreen>
                     else
                       const SizedBox(height: 16),
 
-                    const SizedBox(height: 8),
-
                     // 3. KEYBOARD NUMERIK (HANYA ANGKA 1-9, 0, & HAPUS)
                     _buildPureNumericKeypad(),
+
+                    const SizedBox(height: 18),
+
+                    // 4. AKSES CEPAT DEMO ROLE (Karyawan, Direktur, Superadmin)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.cardBorder,
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'PILIH AKUN LOGIN CEPAT (DEMO):',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onSurfaceVariant,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildQuickLoginChip(
+                                  label: 'Karyawan',
+                                  nik: 'P001',
+                                  color: AppColors.roleKaryawan,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: _buildQuickLoginChip(
+                                  label: 'Direktur',
+                                  nik: 'D001',
+                                  color: AppColors.roleDirektur,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: _buildQuickLoginChip(
+                                  label: 'Superadmin',
+                                  nik: 'P242101',
+                                  color: AppColors.roleStaffIT,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickLoginChip({
+    required String label,
+    required String nik,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _nikController.text = nik;
+          _pinCode = '123456';
+          _errorMessage = null;
+        });
+        _executeLogin('123456');
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+            Text(
+              nik,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w500,
+                color: color.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
         ),
       ),
     );

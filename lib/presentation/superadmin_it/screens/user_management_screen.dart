@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/role_badge.dart';
 import '../../../data/models/user_model.dart';
 import '../../../state/auth_provider.dart';
+import '../../../state/system_settings_provider.dart';
 
 class UserManagementScreen extends StatelessWidget {
   const UserManagementScreen({super.key});
@@ -15,7 +16,11 @@ class UserManagementScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kelola Pengguna & Role'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Kelola Pengguna & Peran Akun'),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddUserDialog(context),
@@ -93,7 +98,41 @@ class UserManagementScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        RoleBadge(role: user.role),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            RoleBadge(role: user.role),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: AppColors.secondary.withValues(alpha: 0.25),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.business_rounded, size: 11, color: AppColors.secondary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    user.officeName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -133,11 +172,21 @@ class UserManagementScreen extends StatelessWidget {
     final deptCtrl = TextEditingController(text: user.department);
     final posCtrl = TextEditingController(text: user.position);
     UserRole selectedRole = user.role;
+    final settingsProv = context.read<SystemSettingsProvider>();
+    final offices = settingsProv.geofencing.offices;
+    String selectedOfficeId = offices.any((o) => o.id == user.officeId)
+        ? user.officeId
+        : (offices.isNotEmpty ? offices.first.id : 'hq');
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
+          final currentOffice = offices.firstWhere(
+            (o) => o.id == selectedOfficeId,
+            orElse: () => offices.first,
+          );
+
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Row(
@@ -181,7 +230,7 @@ class UserManagementScreen extends StatelessWidget {
                   TextField(
                     controller: deptCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'Divisi / Penempatan',
+                      labelText: 'Divisi / Penempatan Unit',
                       prefixIcon: Icon(Icons.business_rounded),
                     ),
                   ),
@@ -192,6 +241,29 @@ class UserManagementScreen extends StatelessWidget {
                       labelText: 'Jabatan (Position)',
                       prefixIcon: Icon(Icons.badge_rounded),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Dropdown Kantor Penempatan Cabang
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedOfficeId,
+                    decoration: const InputDecoration(
+                      labelText: 'Kantor Penempatan (Cabang)',
+                      prefixIcon: Icon(Icons.store_mall_directory_rounded),
+                    ),
+                    items: offices.map((office) {
+                      return DropdownMenuItem<String>(
+                        value: office.id,
+                        child: Text(
+                          '${office.name} (${office.officeTypeLabel})',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedOfficeId = val);
+                    },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<UserRole>(
@@ -227,6 +299,8 @@ class UserManagementScreen extends StatelessWidget {
                           newDepartment: deptCtrl.text.trim(),
                           newPosition: posCtrl.text.trim(),
                           newRole: selectedRole,
+                          newOfficeId: currentOffice.id,
+                          newOfficeName: currentOffice.name,
                         );
                     if (ctx.mounted) Navigator.pop(ctx);
                     if (context.mounted) {
@@ -263,11 +337,19 @@ class UserManagementScreen extends StatelessWidget {
     final nipCtrl = TextEditingController();
     final deptCtrl = TextEditingController();
     UserRole selectedRole = UserRole.karyawan;
+    final settingsProv = context.read<SystemSettingsProvider>();
+    final offices = settingsProv.geofencing.offices;
+    String selectedOfficeId = offices.isNotEmpty ? offices.first.id : 'hq';
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
+          final currentOffice = offices.firstWhere(
+            (o) => o.id == selectedOfficeId,
+            orElse: () => offices.first,
+          );
+
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Text('Tambah Pengguna Baru'),
@@ -288,6 +370,25 @@ class UserManagementScreen extends StatelessWidget {
                   TextField(
                     controller: deptCtrl,
                     decoration: const InputDecoration(labelText: 'Departemen / Divisi'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedOfficeId,
+                    decoration: const InputDecoration(labelText: 'Kantor Penempatan (Cabang)'),
+                    items: offices.map((office) {
+                      return DropdownMenuItem<String>(
+                        value: office.id,
+                        child: Text(
+                          '${office.name} (${office.officeTypeLabel})',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedOfficeId = val);
+                    },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<UserRole>(
@@ -322,6 +423,8 @@ class UserManagementScreen extends StatelessWidget {
                       role: selectedRole,
                       department: deptCtrl.text.isEmpty ? 'Umum' : deptCtrl.text.trim(),
                       position: selectedRole.displayName,
+                      officeId: currentOffice.id,
+                      officeName: currentOffice.name,
                     );
                     context.read<AuthProvider>().addUser(newUser);
                     Navigator.pop(ctx);

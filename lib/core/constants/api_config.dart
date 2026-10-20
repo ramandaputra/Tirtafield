@@ -19,6 +19,8 @@ class ApiConfig {
   static String get attendanceUrl => '$baseUrl/attendance.php';
   static String get approvalUrl => '$baseUrl/approval.php';
   static String get updateProfileUrl => '$baseUrl/update_profile.php';
+  static String get employeesUrl => '$baseUrl/employees.php';
+  static String get settingsUrl => '$baseUrl/settings.php';
 
   /// Carto Basemap API Key
   static const String cartoApiKey =
@@ -32,8 +34,7 @@ class ApiConfig {
   static String cartoRasterTileUrl(int zoom, int x, int y) =>
       'https://basemaps.cartocdn.com/rastertiles/voyager/$zoom/$x/$y.png?key=$cartoApiKey';
 
-  /// Google Maps API Key
-  static const String googleMapsApiKey =
-      'cb1_4ns5_1_ac9e8b38ad585a28159bf506';
+  /// Google Maps API Key (Opsional, kosongkan jika menggunakan OpenStreetMap Nominatim bebas API)
+  static const String googleMapsApiKey = '';
 }
 

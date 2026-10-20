@@ -29,6 +29,11 @@ class UserModel {
   final String department;
   final String position;
   final String? avatarUrl;
+  final String phone;
+  final String statusPegawai; // 'Karyawan Tetap', 'Kontrak', 'Lapangan'
+  final bool isActive;
+  final String officeId; // ID Kantor Penempatan (misal 'hq', 'bintan_center', 'ipa_sei_pulai')
+  final String officeName; // Nama Kantor / Cabang Penempatan
 
   const UserModel({
     required this.id,
@@ -40,6 +45,11 @@ class UserModel {
     required this.department,
     required this.position,
     this.avatarUrl,
+    this.phone = '081234567890',
+    this.statusPegawai = 'Karyawan Tetap',
+    this.isActive = true,
+    this.officeId = 'hq',
+    this.officeName = 'Kantor Pusat Tirtafield Tanjung Pinang',
   });
 
   UserModel copyWith({
@@ -52,6 +62,11 @@ class UserModel {
     String? department,
     String? position,
     String? avatarUrl,
+    String? phone,
+    String? statusPegawai,
+    bool? isActive,
+    String? officeId,
+    String? officeName,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -63,6 +78,11 @@ class UserModel {
       department: department ?? this.department,
       position: position ?? this.position,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      phone: phone ?? this.phone,
+      statusPegawai: statusPegawai ?? this.statusPegawai,
+      isActive: isActive ?? this.isActive,
+      officeId: officeId ?? this.officeId,
+      officeName: officeName ?? this.officeName,
     );
   }
 
@@ -77,6 +97,11 @@ class UserModel {
       'department': department,
       'position': position,
       'avatarUrl': avatarUrl,
+      'phone': phone,
+      'statusPegawai': statusPegawai,
+      'isActive': isActive,
+      'officeId': officeId,
+      'officeName': officeName,
     };
   }
 
@@ -94,6 +119,13 @@ class UserModel {
       department: json['department'] as String,
       position: json['position'] as String,
       avatarUrl: json['avatarUrl'] as String?,
+      phone: (json['phone'] as String?) ?? '081234567890',
+      statusPegawai: (json['statusPegawai'] as String?) ?? 'Karyawan Tetap',
+      isActive: (json['isActive'] as bool?) ?? true,
+      officeId: (json['officeId'] as String?) ?? (json['office_id'] as String?) ?? 'hq',
+      officeName: (json['officeName'] as String?) ??
+          (json['office_name'] as String?) ??
+          'Kantor Pusat Tirtafield Tanjung Pinang',
     );
   }
 }

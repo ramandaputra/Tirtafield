@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/widgets/role_badge.dart';
-import '../../../data/models/approval_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../../state/approval_provider.dart';
 import '../../../state/auth_provider.dart';
-import 'approval_management_screen.dart';
+import '../../../state/employee_management_provider.dart';
+import '../../../state/realtime_monitoring_provider.dart';
+import 'admin_akun_screen.dart';
+import 'admin_monitoring_screen.dart';
 
 class DashboardDirekturScreen extends StatefulWidget {
   const DashboardDirekturScreen({super.key});
@@ -16,106 +18,210 @@ class DashboardDirekturScreen extends StatefulWidget {
 }
 
 class _DashboardDirekturScreenState extends State<DashboardDirekturScreen> {
+  int _selectedTabIndex = 0;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ApprovalProvider>().loadAllApprovals();
+      context.read<RealtimeMonitoringProvider>().loadRealtimeAttendance();
+      context.read<EmployeeManagementProvider>().loadEmployees();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final authProv = context.watch<AuthProvider>();
-    final approvalProv = context.watch<ApprovalProvider>();
     final user = authProv.currentUser;
-    final pendingApprovals = approvalProv.pendingApprovals;
+    final approvalProv = context.watch<ApprovalProvider>();
+    final pendingCount = approvalProv.pendingApprovals.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Panel Direktur (Admin)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              user.name,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textSecondary,
+      appBar: _selectedTabIndex == 1
+          ? AppBar(
+              backgroundColor: AppColors.surface,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0.5,
+              shadowColor: Colors.black.withValues(alpha: 0.08),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded,
+                    color: AppColors.onSurface),
+                onPressed: () => setState(() => _selectedTabIndex = 0),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Keluar',
-            icon: const Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
-            onPressed: () => authProv.logout(),
+              title: const Text(
+                'Akun & Profil Admin',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            )
+          : _buildTopAppBar(context, user),
+      body: IndexedStack(
+        index: _selectedTabIndex,
+        children: [
+          // TAB 0: TAMPILAN MONITOR ADMIN (DIREKTUR) DENGAN DAFTAR PERSETUJUAN & RIWAYAT
+          const AdminMonitoringScreen(
+            showAppBar: false,
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: RoleBadge(role: user.role),
+
+          // TAB 1: AKUN SAYA
+          AdminAkunScreen(
+            showAppBar: false,
+            onBackToHome: () => setState(() => _selectedTabIndex = 0),
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await context.read<ApprovalProvider>().loadAllApprovals();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Statistics Row
-              _buildStatsGrid(pendingCount: pendingApprovals.length),
-              const SizedBox(height: 24),
+      bottomNavigationBar: _buildBottomNavigation(pendingCount),
+    );
+  }
 
-              // Pending Approvals Section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Perlu Persetujuan Direktur',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+  PreferredSizeWidget _buildTopAppBar(BuildContext context, UserModel user) {
+    return AppBar(
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0.5,
+      shadowColor: Colors.black.withValues(alpha: 0.08),
+      titleSpacing: 16,
+      title: Row(
+        children: [
+          // Avatar with Online dot
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.roleDirektur,
+                    width: 2,
+                  ),
+                ),
+                child: ClipOval(
+                  child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                      ? Image.network(
+                          user.avatarUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildAvatarFallback(),
+                        )
+                      : _buildAvatarFallback(),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.surfaceContainerLowest,
+                      width: 2,
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ApprovalManagementScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text('Lihat Semua'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              if (pendingApprovals.isEmpty)
-                _buildAllClearCard()
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: pendingApprovals.take(3).length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final item = pendingApprovals[index];
-                    return _buildPendingCard(context, item, user.name);
-                  },
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.verified_rounded,
+                      color: AppColors.roleDirektur,
+                      size: 15,
+                    ),
+                  ],
+                ),
+                Text(
+                  '${user.nip} • ${user.position}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    color: AppColors.onSurfaceVariant,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarFallback() {
+    return Container(
+      color: AppColors.surfaceContainer,
+      child: const Icon(
+        Icons.person,
+        size: 20,
+        color: AppColors.roleDirektur,
+      ),
+    );
+  }
+
+  Widget _buildBottomNavigation(int pendingCount) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // TAB 0: DASHBOARD (DENGAN BADGE PERSETUJUAN MENUNGGU)
+              _buildNavTab(
+                icon: Icons.dashboard_rounded,
+                label: 'Dashboard',
+                badgeCount: pendingCount,
+                isActive: _selectedTabIndex == 0,
+                onTap: () => setState(() => _selectedTabIndex = 0),
+              ),
+
+              // TAB 1: AKUN SAYA
+              _buildNavTab(
+                icon: Icons.person_rounded,
+                label: 'Akun Saya',
+                isActive: _selectedTabIndex == 1,
+                onTap: () => setState(() => _selectedTabIndex = 1),
+              ),
             ],
           ),
         ),
@@ -123,295 +229,53 @@ class _DashboardDirekturScreenState extends State<DashboardDirekturScreen> {
     );
   }
 
-  Widget _buildStatsGrid({required int pendingCount}) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.5,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        _buildStatCard(
-          title: 'Perlu Approval',
-          value: pendingCount.toString(),
-          icon: Icons.pending_actions_rounded,
-          color: AppColors.warning,
-        ),
-        _buildStatCard(
-          title: 'Total Karyawan',
-          value: '42 Orang',
-          icon: Icons.people_alt_outlined,
-          color: AppColors.primary,
-        ),
-        _buildStatCard(
-          title: 'Hadir Hari Ini',
-          value: '39 Hadir',
-          icon: Icons.check_circle_outline,
-          color: AppColors.success,
-        ),
-        _buildStatCard(
-          title: 'Izin / Cuti',
-          value: '3 Orang',
-          icon: Icons.beach_access_outlined,
-          color: AppColors.secondary,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
+  Widget _buildNavTab({
     required IconData icon,
-    required Color color,
+    required String label,
+    int? badgeCount,
+    required bool isActive,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Icon(icon, size: 20, color: color),
-            ],
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    const activeColor = AppColors.roleDirektur;
 
-  Widget _buildAllClearCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: const Column(
-        children: [
-          Icon(Icons.done_all_rounded, size: 48, color: AppColors.success),
-          SizedBox(height: 8),
-          Text(
-            'Semua Pengajuan Telah Ditinjau',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Tidak ada antrean approval yang tertunda saat ini.',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPendingCard(
-    BuildContext context,
-    ApprovalRequest item,
-    String reviewerName,
-  ) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive
+              ? activeColor.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  child: Text(
-                    item.userName.isNotEmpty ? item.userName[0] : 'U',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.userName,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '${item.userDepartment} • ${item.type.label}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              item.title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item.reason,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _handleReview(
-                      context,
-                      item,
-                      ApprovalStatus.rejected,
-                      reviewerName,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                      side: const BorderSide(color: AppColors.danger),
-                    ),
-                    child: const Text('Tolak'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _handleReview(
-                      context,
-                      item,
-                      ApprovalStatus.approved,
-                      reviewerName,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('Setujui'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _handleReview(
-    BuildContext context,
-    ApprovalRequest item,
-    ApprovalStatus status,
-    String reviewerName,
-  ) {
-    final noteController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          status == ApprovalStatus.approved ? 'Setujui Pengajuan' : 'Tolak Pengajuan',
-          style: TextStyle(
-            color: status == ApprovalStatus.approved
-                ? AppColors.success
-                : AppColors.danger,
-          ),
-        ),
-        content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Karyawan: ${item.userName}'),
-            Text('Tipe: ${item.type.label}'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: noteController,
-              decoration: InputDecoration(
-                labelText: 'Catatan Direktur (Opsional)',
-                hintText: status == ApprovalStatus.approved
-                    ? 'Contoh: Disetujui, selamat berlibur.'
-                    : 'Berikan alasan penolakan...',
+            Badge(
+              isLabelVisible: badgeCount != null && badgeCount > 0,
+              label: Text('$badgeCount'),
+              backgroundColor: AppColors.warning,
+              textColor: Colors.white,
+              child: Icon(
+                icon,
+                size: 20,
+                color: isActive ? activeColor : AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? activeColor : AppColors.onSurfaceVariant,
+                fontFamily: 'Inter',
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              final success = await context.read<ApprovalProvider>().reviewRequest(
-                    approvalId: item.id,
-                    status: status,
-                    reviewerName: reviewerName,
-                    notes: noteController.text.trim(),
-                  );
-              if (context.mounted && success) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: status == ApprovalStatus.approved
-                        ? AppColors.success
-                        : AppColors.danger,
-                    content: Text(
-                      'Pengajuan ${item.userName} telah ${status.label.toLowerCase()}!',
-                    ),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: status == ApprovalStatus.approved
-                  ? AppColors.success
-                  : AppColors.danger,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Konfirmasi'),
-          ),
-        ],
       ),
     );
   }

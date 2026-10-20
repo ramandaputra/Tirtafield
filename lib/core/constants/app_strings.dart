@@ -1,17 +1,17 @@
 class AppStrings {
   static const String appName = 'Tirtafield Presensi';
-  static const String appTagline = 'Sistem Absensi & Approval Karyawan';
+  static const String appTagline = 'Sistem Presensi & Persetujuan Karyawan';
 
   // Roles
   static const String roleKaryawan = 'Karyawan';
   static const String roleDirektur = 'Direktur';
   static const String roleStaffIT = 'Staff IT';
 
-  // 4 Tombol Absensi
-  static const String absenMasuk = 'Absen Masuk';
+  // 4 Tombol Presensi
+  static const String absenMasuk = 'Presensi Masuk';
   static const String absenIstirahatKeluar = 'Istirahat Keluar';
   static const String absenIstirahatMasuk = 'Istirahat Masuk';
-  static const String absenPulang = 'Absen Pulang';
+  static const String absenPulang = 'Presensi Pulang';
 
   // Subtitles / Helper for 4 Buttons
   static const String descAbsenMasuk = 'Mulai jam kerja';
@@ -24,10 +24,7 @@ class AppStrings {
   static const String statusApproved = 'Disetujui';
   static const String statusRejected = 'Ditolak';
 
-  // Approval Types
-  static const String typeCuti = 'Cuti Tahunan';
-  static const String typeIzin = 'Izin Pribadi';
-  static const String typeSakit = 'Sakit';
-  static const String typeLembur = 'Lembur';
-  static const String typeKoreksi = 'Koreksi Absen';
+  // Approval Types (Hanya terkait absensi)
+  static const String typeKoreksi = 'Koreksi Presensi';
+  static const String typeLuarRadius = 'Presensi Luar Radius';
 }

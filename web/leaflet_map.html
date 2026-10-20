@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Leaflet OpenStreetMap</title>
+  <title>Leaflet OpenStreetMap - Presensi Tirtafield</title>
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -43,52 +43,146 @@
       background: #0f172a;
     }
     .leaflet-control-attribution {
-      font-size: 9.5px !important;
-      background: rgba(255, 255, 255, 0.85) !important;
+      font-size: 9px !important;
+      background: rgba(255, 255, 255, 0.8) !important;
       border-radius: 4px;
-      padding: 2px 5px !important;
+      padding: 1px 4px !important;
     }
-    .btn-recenter {
+    
+    /* Clean, Sleek Floating Distance HUD */
+    .distance-hud {
       position: absolute;
-      top: 12px;
-      right: 12px;
+      top: 10px;
+      left: 10px;
       z-index: 1000;
-      background: #ffffff;
+      pointer-events: none;
+    }
+    .hud-pill {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(4px);
       color: #0f172a;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 6px 10px;
+      border: 1.5px solid #2563eb;
+      border-radius: 20px;
+      padding: 5px 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
       font-size: 11.5px;
-      font-weight: 600;
+    }
+    .hud-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+    .hud-value {
+      color: #1d4ed8;
+      font-size: 12.5px;
+      font-weight: 800;
+    }
+
+    /* Minimal, Non-intrusive Map Controls */
+    .map-controls-group {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      gap: 6px;
+    }
+    .map-icon-btn {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(4px);
+      color: #1e293b;
+      border: 1px solid rgba(203, 213, 225, 0.85);
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 5px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-      transition: all 0.2s ease;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      transition: all 0.18s ease;
     }
-    .btn-recenter:hover {
-      background: #f8fafc;
+    .map-icon-btn:hover {
+      background: #ffffff;
       transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+    }
+
+    /* High-Contrast, Clean Distance Line Tooltip */
+    .distance-tooltip {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 2px solid #2563eb !important;
+      border-radius: 20px !important;
+      font-size: 11.5px !important;
+      padding: 3px 9px !important;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2) !important;
+      font-weight: 700 !important;
+      white-space: nowrap !important;
+    }
+    .distance-tooltip b {
+      color: #1d4ed8 !important;
+    }
+    .leaflet-tooltip-top:before {
+      border-top-color: #2563eb !important;
+    }
+    .leaflet-tooltip-bottom:before {
+      border-bottom-color: #2563eb !important;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <button class="btn-recenter" onclick="recenterMap()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"></circle>
-      <circle cx="12" cy="12" r="3"></circle>
-    </svg>
-    Lokasi Saya
-  </button>
+
+  <!-- Distance HUD Badge -->
+  <div id="distance-hud" class="distance-hud" style="display:none;">
+    <div class="hud-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12h20M7 8l-5 4 5 4M17 8l5 4-5 4"/>
+      </svg>
+      <span class="hud-label">Jarak ke Kantor:</span>
+      <b id="hud-distance-val" class="hud-value">-</b>
+    </div>
+  </div>
+
+  <!-- Minimal Icon Controls -->
+  <div class="map-controls-group">
+    <button id="btn-fit" class="map-icon-btn" onclick="fitBoth()" style="display:none;" title="Lihat Karyawan & Kantor Penempatan">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      </svg>
+    </button>
+    <button class="map-icon-btn" onclick="recenterGPS()" title="Pusatkan ke Karyawan">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    </button>
+    <button id="btn-office" class="map-icon-btn" onclick="recenterOffice()" style="display:none;" title="Pusatkan ke Kantor Penempatan">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 21h18M5 21V7l8-4v18M13 21V3l6 4v14"/>
+      </svg>
+    </button>
+  </div>
 
   <script>
     var map;
-    var marker;
-    var circle;
+    var userMarker;
+    var userCircle;
+    var officeMarker;
+    var officeCircle;
+    var distanceLine;
+
     var currentLat = 0.92031;
     var currentLng = 104.46069;
+    var targetLat = null;
+    var targetLng = null;
+    var targetName = 'Kantor Penempatan';
+    var targetRad = 150;
+    var allOfficesList = [];
+    var otherOfficeLayers = [];
 
     function getParam(name, def) {
       var urlParams = new URLSearchParams(window.location.search);
@@ -97,18 +191,27 @@
 
     var lat = parseFloat(getParam('lat', '0.92031'));
     var lng = parseFloat(getParam('lng', '104.46069'));
-    var zoom = parseInt(getParam('zoom', '16'));
-    var popupText = decodeURIComponent(getParam('popup', '<b>Kantor Tirtafield Tanjung Pinang</b><br>Tj. Pinang Timur, Kota Tanjung Pinang<br>Plus Code: WFC6+47'));
+    var zoom = parseInt(getParam('zoom', '15'));
+    var popupText = decodeURIComponent(getParam('popup', '<b>Lokasi Presensi Karyawan</b><br>Koordinat: ' + lat.toFixed(5) + ', ' + lng.toFixed(5)));
+
+    var tLatParam = getParam('tlat', null);
+    var tLngParam = getParam('tlng', null);
+    if (tLatParam && tLngParam) {
+      targetLat = parseFloat(tLatParam);
+      targetLng = parseFloat(tLngParam);
+      targetName = decodeURIComponent(getParam('tname', 'Kantor Penempatan'));
+      targetRad = parseFloat(getParam('trad', '150'));
+    }
+
+    var officesRaw = getParam('all_offices', null);
+    if (officesRaw) {
+      try {
+        allOfficesList = JSON.parse(decodeURIComponent(officesRaw));
+      } catch (e) {}
+    }
 
     currentLat = lat;
     currentLng = lng;
-
-    // Persis kode Leaflet yang diminta:
-    // var map = L.map('map').setView([lat, lng], zoom);
-    // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    //     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    // }).addTo(map);
-    // L.marker([lat, lng]).addTo(map).bindPopup(...).openPopup();
 
     map = L.map('map', {
       zoomControl: true,
@@ -117,45 +220,174 @@
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    // Geofence Circle (radius akurasi GPS)
-    circle = L.circle([lat, lng], {
-      color: '#1a73e8',
-      fillColor: '#4285f4',
-      fillOpacity: 0.18,
-      radius: 80
-    }).addTo(map);
+    function formatDistance(distM) {
+      if (distM >= 1000) {
+        return (distM / 1000).toFixed(1) + ' km';
+      }
+      return Math.round(distM) + ' m';
+    }
 
-    // Marker & Popup persis permintaan user
-    marker = L.marker([lat, lng]).addTo(map);
-    marker.bindPopup(popupText).openPopup();
+    function initLayers() {
+      // 1. User GPS Accuracy circle
+      userCircle = L.circle([lat, lng], {
+        color: '#1a73e8',
+        fillColor: '#4285f4',
+        fillOpacity: 0.16,
+        radius: 40
+      }).addTo(map);
 
-    function recenterMap() {
-      if (map) {
-        map.setView([currentLat, currentLng], 16, { animate: true });
-        if (marker) marker.openPopup();
+      // 2. User GPS Marker with clean pin
+      var userIcon = L.divIcon({
+        className: 'custom-user-pin',
+        html: '<div style="background:#2563eb;color:#ffffff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(37,99,235,0.45);border:2.5px solid #ffffff;"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg></div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      userMarker = L.marker([lat, lng], { icon: userIcon }).addTo(map);
+      // Bind popup without auto-opening it so it doesn't block the map view!
+      userMarker.bindPopup(popupText);
+
+      // 3. Render Target Office & Distance Line
+      updateTargetOfficeUI();
+    }
+
+    function updateTargetOfficeUI() {
+      if (officeMarker) { map.removeLayer(officeMarker); officeMarker = null; }
+      if (officeCircle) { map.removeLayer(officeCircle); officeCircle = null; }
+      if (distanceLine) { map.removeLayer(distanceLine); distanceLine = null; }
+
+      otherOfficeLayers.forEach(function(l) { map.removeLayer(l); });
+      otherOfficeLayers = [];
+
+      // Render SEMUA titik kantor Tirtafield (Sebagai titik acuan penempatan)
+      if (allOfficesList && Array.isArray(allOfficesList)) {
+        allOfficesList.forEach(function(off) {
+          var oLat = parseFloat(off.lat);
+          var oLng = parseFloat(off.lng);
+          if (isNaN(oLat) || isNaN(oLng)) return;
+
+          // Jangan timpa target office penempatan karyawan (akan dirender khusus dengan warna hijau di bawah)
+          var isAssigned = (targetLat !== null && Math.abs(oLat - targetLat) < 0.0001 && Math.abs(oLng - targetLng) < 0.0001);
+          if (isAssigned) return;
+
+          var oIcon = L.divIcon({
+            className: 'custom-other-office-pin',
+            html: '<div style="background:#1e40af;color:#ffffff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(30,64,175,0.4);border:2px solid #ffffff;"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></div>',
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+          });
+
+          var m = L.marker([oLat, oLng], { icon: oIcon }).addTo(map);
+          var typeLabel = off.isPrimary ? 'Kantor Utama' : 'Kantor Cabang';
+          m.bindPopup('<b>' + (off.name || 'Titik Kantor') + '</b><br><span style="color:#2563eb;font-weight:600;font-size:11px;">' + typeLabel + '</span>');
+
+          otherOfficeLayers.push(m);
+        });
+      }
+
+      var btnOffice = document.getElementById('btn-office');
+      var btnFit = document.getElementById('btn-fit');
+
+      if (targetLat !== null && targetLng !== null && !isNaN(targetLat) && !isNaN(targetLng)) {
+        if (btnOffice) btnOffice.style.display = 'flex';
+        if (btnFit) btnFit.style.display = 'flex';
+
+        // Target Office Marker (Emerald/Green - Penempatan Pegawai)
+        var officeIcon = L.divIcon({
+          className: 'custom-office-pin',
+          html: '<div style="background:#059669;color:#ffffff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(5,150,105,0.4);border:2.5px solid #ffffff;"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg></div>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+
+        officeMarker = L.marker([targetLat, targetLng], { icon: officeIcon }).addTo(map);
+        officeMarker.bindPopup('<b>' + targetName + '</b><br><span style="color:#059669;font-weight:700;font-size:11.5px;">Kantor Penempatan Karyawan</span>');
+
+        // Distance vector polyline connecting GPS to placement office
+        var dist = map.distance([currentLat, currentLng], [targetLat, targetLng]);
+        var distLabel = formatDistance(dist);
+
+        distanceLine = L.polyline([[currentLat, currentLng], [targetLat, targetLng]], {
+          color: '#2563eb',
+          weight: 3.5,
+          dashArray: '6, 8',
+          opacity: 0.9
+        }).addTo(map);
+
+        // Update floating HUD distance
+        var hud = document.getElementById('distance-hud');
+        var hudVal = document.getElementById('hud-distance-val');
+        if (hud && hudVal) {
+          hudVal.innerText = distLabel;
+          hud.style.display = 'block';
+        }
+
+        // Auto-fit both points so the employee and office are immediately visible!
+        setTimeout(function() {
+          fitBoth();
+        }, 150);
+      } else {
+        if (btnOffice) btnOffice.style.display = 'none';
+        if (btnFit) btnFit.style.display = 'none';
       }
     }
 
-    // Listener jika koordinat GPS diperbarui dari Flutter
+    initLayers();
+
+    function recenterGPS() {
+      if (map) {
+        map.setView([currentLat, currentLng], 16, { animate: true });
+        if (userMarker) userMarker.openPopup();
+      }
+    }
+
+    function recenterOffice() {
+      if (map && targetLat !== null && targetLng !== null) {
+        map.setView([targetLat, targetLng], 16, { animate: true });
+        if (officeMarker) officeMarker.openPopup();
+      }
+    }
+
+    function fitBoth() {
+      if (map) {
+        var points = [[currentLat, currentLng]];
+        if (targetLat !== null && targetLng !== null && !isNaN(targetLat) && !isNaN(targetLng)) {
+          points.push([targetLat, targetLng]);
+        }
+        if (points.length > 1) {
+          var bounds = L.latLngBounds(points);
+          map.fitBounds(bounds, { padding: [45, 45], maxZoom: 16 });
+        }
+      }
+    }
+
+    // Listener jika koordinat GPS atau Kantor diperbarui dari Flutter
     window.addEventListener('message', function(event) {
       if (event.data && event.data.type === 'UPDATE_LOCATION') {
         var d = event.data;
-        currentLat = d.lat;
-        currentLng = d.lng;
-        if (map) {
-          map.setView([d.lat, d.lng], d.zoom || map.getZoom() || 16);
-        }
-        if (marker) {
-          marker.setLatLng([d.lat, d.lng]);
-          if (d.popup) {
-            marker.setPopupContent(d.popup).openPopup();
+        if (d.lat !== undefined && d.lng !== undefined) {
+          currentLat = d.lat;
+          currentLng = d.lng;
+          if (userMarker) {
+            userMarker.setLatLng([d.lat, d.lng]);
+            if (d.popup) {
+              userMarker.setPopupContent(d.popup);
+            }
+          }
+          if (userCircle) {
+            userCircle.setLatLng([d.lat, d.lng]);
           }
         }
-        if (circle) {
-          circle.setLatLng([d.lat, d.lng]);
+        if (d.targetLat !== undefined && d.targetLng !== undefined) {
+          targetLat = d.targetLat;
+          targetLng = d.targetLng;
+          if (d.targetName) targetName = d.targetName;
+          if (d.targetRadius) targetRad = d.targetRadius;
+          updateTargetOfficeUI();
         }
       }
     });

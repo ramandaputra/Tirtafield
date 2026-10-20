@@ -10,27 +10,39 @@ class BuktiPresensiBerhasilScreen extends StatefulWidget {
   final String projectLocation;
   final String projectAddress;
   final String distanceHq;
+  final bool isWithinRadius;
+  final String targetOfficeName;
+  final String targetOfficeType;
   final DateTime? capturedDateTime;
   final String? photoUrl;
   final double biometricScore;
   final double? latitude;
   final double? longitude;
   final String? coordinates;
+  final bool isLate;
+  final String? lateReason;
+  final int lateDurationMinutes;
 
   const BuktiPresensiBerhasilScreen({
     super.key,
     this.slotType = AttendanceSlotType.masuk,
-    this.slotTitle = 'Absen Masuk',
+    this.slotTitle = 'Presensi Masuk',
     this.projectLocation = 'Kantor Tirtafield Tanjung Pinang',
     this.projectAddress =
         'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113',
     this.distanceHq = '8.5 km',
+    this.isWithinRadius = false,
+    this.targetOfficeName = 'Kantor Pusat Tirtafield (Kantor Utama)',
+    this.targetOfficeType = 'Kantor Utama',
     this.capturedDateTime,
     this.photoUrl,
     this.biometricScore = 99.4,
     this.latitude,
     this.longitude,
     this.coordinates,
+    this.isLate = false,
+    this.lateReason,
+    this.lateDurationMinutes = 0,
   });
 
   @override
@@ -82,19 +94,19 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
     final h = dt.hour.toString().padLeft(2, '0');
     final min = dt.minute.toString().padLeft(2, '0');
     final sec = dt.second.toString().padLeft(2, '0');
-    return 'Selfie_$y$m${d}_$h$min$sec.jpg';
+    return 'Swafoto_$y$m${d}_$h$min$sec.jpg';
   }
 
   String _getNextActivityTitle() {
     switch (widget.slotType) {
       case AttendanceSlotType.masuk:
-        return 'Absen Istirahat (12:00 WIB)';
+        return 'Presensi Istirahat Keluar (12:00 WIB)';
       case AttendanceSlotType.istirahatKeluar:
-        return 'Selesai Istirahat (13:00 WIB)';
+        return 'Presensi Istirahat Masuk (13:00 WIB)';
       case AttendanceSlotType.istirahatMasuk:
-        return 'Absen Pulang (17:00 WIB)';
+        return 'Presensi Pulang (17:00 WIB)';
       case AttendanceSlotType.pulang:
-        return 'Selesai Kerja Hari Ini 🎉';
+        return 'Jam Kerja Selesai Hari Ini';
     }
   }
 
@@ -152,6 +164,16 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: AppColors.onSurface,
+            size: 22,
+          ),
+          onPressed: () {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+        ),
         centerTitle: true,
         title: const Text(
           'Bukti Presensi',
@@ -371,13 +393,16 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                           },
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Pending: Menunggu Disetujui oleh Direktur',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
-                            fontFamily: 'Inter',
+                        const Flexible(
+                          child: Text(
+                            'Pending: Menunggu Disetujui oleh Direktur',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurface,
+                              fontFamily: 'Inter',
+                            ),
                           ),
                         ),
                       ],
@@ -440,15 +465,24 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceContainerHighest,
+                            color: widget.isLate
+                                ? const Color(0xFFFEF3C7)
+                                : AppColors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(20),
+                            border: widget.isLate
+                                ? Border.all(color: const Color(0xFFF59E0B), width: 1.2)
+                                : null,
                           ),
-                          child: const Text(
-                            'Tepat Waktu',
+                          child: Text(
+                            widget.isLate
+                                ? 'Terlambat (${widget.lateDurationMinutes} menit)'
+                                : 'Tepat Waktu',
                             style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
+                              color: widget.isLate
+                                  ? const Color(0xFFB45309)
+                                  : AppColors.primary,
                               fontFamily: 'Inter',
                             ),
                           ),
@@ -456,6 +490,49 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                       ],
                     ),
                   ),
+                  if (widget.isLate && widget.lateReason != null && widget.lateReason!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFBEB),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFCD34D)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFFB45309)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Alasan Keterlambatan Tercatat:',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFB45309),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  widget.lateReason!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF78350F),
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
                   // Metric & Verification Details
@@ -516,24 +593,27 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.tertiaryContainer.withValues(alpha: 0.1),
+                        color: AppColors.secondary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.secondary.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.verified_user_rounded,
+                            Icons.share_location_rounded,
                             size: 13,
-                            color: AppColors.tertiaryContainer,
+                            color: AppColors.secondary,
                           ),
                           SizedBox(width: 4),
                           Text(
-                            'Radius Valid',
+                            'Penugasan Lapangan',
                             style: TextStyle(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.tertiaryContainer,
+                              color: AppColors.secondary,
                               fontFamily: 'Inter',
                             ),
                           ),
@@ -555,7 +635,7 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          'Jakarta Selatan • ${widget.distanceHq} dari Kantor Pusat (HQ)',
+                          '${widget.projectAddress} • Jarak ${widget.distanceHq} ke ${widget.targetOfficeName}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.onSurfaceVariant,
@@ -666,7 +746,7 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                                         .withValues(alpha: 0.85),
                                     padding: const EdgeInsets.symmetric(vertical: 2),
                                     child: const Text(
-                                      'GEOTAGGED',
+                                      'BERSTEMPEL LOKASI',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: AppColors.inverseOnSurface,
@@ -869,17 +949,23 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                      color: AppColors.onSurfaceVariant,
-                      fontFamily: 'Inter',
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                        color: AppColors.onSurfaceVariant,
+                        fontFamily: 'Inter',
+                      ),
                     ),
                   ),
-                  if (topTrailing != null) topTrailing,
+                  if (topTrailing != null) ...[
+                    const SizedBox(width: 6),
+                    Flexible(child: topTrailing),
+                  ],
                 ],
               ),
               const SizedBox(height: 3),

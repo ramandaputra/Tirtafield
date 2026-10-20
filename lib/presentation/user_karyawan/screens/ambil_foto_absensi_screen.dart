@@ -6,6 +6,7 @@ import '../../../core/utils/date_time_helper.dart';
 import '../../../data/models/attendance_model.dart';
 import '../../../state/attendance_provider.dart';
 import '../../../state/auth_provider.dart';
+import '../../../state/system_settings_provider.dart';
 import 'bukti_presensi_berhasil_screen.dart';
 
 class AmbilFotoAbsensiScreen extends StatefulWidget {
@@ -14,6 +15,9 @@ class AmbilFotoAbsensiScreen extends StatefulWidget {
   final String projectLocation;
   final String projectAddress;
   final String distanceHq;
+  final bool isWithinRadius;
+  final String targetOfficeName;
+  final String targetOfficeType;
   final double? latitude;
   final double? longitude;
   final String? coordinates;
@@ -21,11 +25,14 @@ class AmbilFotoAbsensiScreen extends StatefulWidget {
   const AmbilFotoAbsensiScreen({
     super.key,
     this.slotType = AttendanceSlotType.istirahatKeluar,
-    this.slotTitle = 'Absen Istirahat',
+    this.slotTitle = 'Presensi Istirahat Keluar',
     this.projectLocation = 'Kantor Tirtafield Tanjung Pinang',
     this.projectAddress =
         'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113',
     this.distanceHq = '8.5 km',
+    this.isWithinRadius = false,
+    this.targetOfficeName = 'Kantor Pusat Tirtafield (Kantor Utama)',
+    this.targetOfficeType = 'Kantor Utama',
     this.latitude,
     this.longitude,
     this.coordinates,
@@ -45,22 +52,16 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
   DateTime? _capturedDateTime;
   bool _isTakingPhoto = false;
 
-  // Animation controllers for scanning HUD & shutter flash
-  late AnimationController _scanController;
-  late Animation<double> _scanAnimation;
-
-  late AnimationController _pulseController;
-  late Animation<double> _pulseAnimation;
-
+  // Animation controller for shutter flash
   late AnimationController _flashController;
   late Animation<double> _flashAnimation;
 
   final TextEditingController _notesController = TextEditingController(
     text: 'Presensi kehadiran operasional Kantor Tirtafield Tanjung Pinang',
   );
+  final TextEditingController _lateReasonController = TextEditingController();
 
   bool _isSubmitting = false;
-  double _biometricScore = 99.4;
 
   static const String _photoUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAZYeBkPw4X6YbUMVThN8ZLdaDSM0yMMkiI6b11L5wW0kFYfuimQSTd3wzc8wk7AMPYmESX3bSnmrL1HE9Jy9PIpISRttZnRERF7lxBX56J50KwkOlmXyqlf7fJeXSgQ9wwCWkLcyeNXC_ZcoWYXygZV3PhN1enRGtRKfGx0_IsqccyGL_TtqGecv8ydzzaX9VrJyOoY6ATXkkOSfplGaKo-LS_yHXUWBX_2EXQPcr2-Z5N34b3bRA';
@@ -77,24 +78,6 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
       }
     });
 
-    // Scan line animation (alternates up and down)
-    _scanController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2500),
-    )..repeat(reverse: true);
-    _scanAnimation = Tween<double>(begin: 0.10, end: 0.88).animate(
-      CurvedAnimation(parent: _scanController, curve: Curves.easeInOut),
-    );
-
-    // Subtle HUD pulse animation
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2800),
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 0.97, end: 1.03).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
     // Camera flash animation
     _flashController = AnimationController(
       vsync: this,
@@ -108,10 +91,9 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
   @override
   void dispose() {
     _timer?.cancel();
-    _scanController.dispose();
-    _pulseController.dispose();
     _flashController.dispose();
     _notesController.dispose();
+    _lateReasonController.dispose();
     super.dispose();
   }
 
@@ -134,7 +116,6 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
         setState(() {
           _isTakingPhoto = false;
           _hasCapturedPhoto = true;
-          _biometricScore = 99.4;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -146,7 +127,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Foto selfie berhasil diambil & stempel verifikasi tercetak!',
+                    'Swafoto berhasil diambil & stempel verifikasi tercetak!',
                   ),
                 ),
               ],
@@ -173,7 +154,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Kamera aktif. Posisikan kembali wajah Anda untuk foto selfie baru.',
+                'Kamera aktif. Silakan ambil swafoto baru di area penugasan.',
               ),
             ),
           ],
@@ -183,26 +164,40 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
     );
   }
 
-  void _onHelpPressed() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _buildHelpSheet(ctx),
-    );
-  }
+
 
   Future<void> _onSubmitAttendance() async {
     final authProvider = context.read<AuthProvider>();
     final attendanceProvider = context.read<AttendanceProvider>();
+    final settingsProvider = context.read<SystemSettingsProvider>();
     final user = authProvider.currentUser;
 
+    final checkTime = _capturedDateTime ?? _currentTime;
+    final isLate = widget.slotType == AttendanceSlotType.masuk &&
+        settingsProvider.operationalHours.isLateForCheckIn(checkTime);
+    final lateReason = _lateReasonController.text.trim();
+    final lateMinutes = settingsProvider.operationalHours.getLateDurationMinutes(checkTime);
+
+    if (isLate && lateReason.isEmpty) {
+      _showMandatoryLateReasonDialog(
+        context,
+        lateMinutes,
+        settingsProvider.operationalHours.masuk,
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
+
+    final latePrefix = isLate ? '[TERLAMBAT ($lateMinutes mnt): $lateReason] ' : '';
+    final distancePrefix = '[Presensi Lapangan: ${widget.distanceHq} ke ${widget.targetOfficeName}] ';
+    final effectiveNotes = '$latePrefix$distancePrefix${_notesController.text.trim()}'.trim();
 
     final success = await attendanceProvider.performAttendance(
       user: user,
       slotType: widget.slotType,
       location: widget.projectLocation,
-      notes: _notesController.text.trim(),
+      notes: effectiveNotes,
       latitude: widget.latitude,
       longitude: widget.longitude,
       distanceHq: widget.distanceHq,
@@ -221,12 +216,17 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
             projectLocation: widget.projectLocation,
             projectAddress: widget.projectAddress,
             distanceHq: widget.distanceHq,
+            isWithinRadius: widget.isWithinRadius,
+            targetOfficeName: widget.targetOfficeName,
+            targetOfficeType: widget.targetOfficeType,
             latitude: widget.latitude,
             longitude: widget.longitude,
             coordinates: widget.coordinates,
             capturedDateTime: displayTime,
             photoUrl: _photoUrl,
-            biometricScore: _biometricScore,
+            isLate: isLate,
+            lateReason: isLate ? lateReason : null,
+            lateDurationMinutes: isLate ? lateMinutes : 0,
           ),
         ),
       );
@@ -242,139 +242,113 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
     }
   }
 
-
-
-  Widget _buildHelpSheet(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Row(
+  void _showMandatoryLateReasonDialog(
+    BuildContext context,
+    int lateMinutes,
+    String scheduledMasuk,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final reasonDialogController =
+            TextEditingController(text: _lateReasonController.text);
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: AppColors.surfaceContainerLowest,
+          title: const Row(
             children: [
-              Icon(
-                Icons.help_outline_rounded,
-                color: AppColors.secondary,
-                size: 22,
-              ),
+              Icon(Icons.warning_amber_rounded,
+                  color: Color(0xFFD97706), size: 24),
               SizedBox(width: 8),
-              Text(
-                'Pusat Bantuan Verifikasi Presensi',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface,
+              Expanded(
+                child: Text(
+                  'Alasan Keterlambatan Wajib Diisi',
+                  style:
+                      TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          _buildHelpItem(
-            icon: Icons.camera_alt_rounded,
-            title: 'Pengambilan Foto Selfie Wajib',
-            desc:
-                'Ambil foto selfie di area kerja dengan wajah terlihat jelas. Sistem akan mencetak stempel resmi secara otomatis.',
-          ),
-          const SizedBox(height: 12),
-          _buildHelpItem(
-            icon: Icons.pin_drop_rounded,
-            title: 'Stempel Telemetri Otomatis',
-            desc:
-                'Hasil foto selfie langsung memuat timestamp waktu aktual, nama & alamat lokasi proyek, serta jarak radius dari kantor pusat.',
-          ),
-          const SizedBox(height: 12),
-          _buildHelpItem(
-            icon: Icons.gpp_good_rounded,
-            title: 'Sistem Anti-Fake GPS & Radius 150m',
-            desc:
-                'Presensi hanya sah jika perangkat berada dalam radius toleransi kerja 150 meter dari titik penugasan.',
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.surfaceContainer,
-                foregroundColor: AppColors.onSurface,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Mengerti',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHelpItem({
-    required IconData icon,
-    required String title,
-    required String desc,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.onSurface,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFF59E0B)),
+                ),
+                child: Text(
+                  'Anda tercatat terlambat $lateMinutes menit dari batas jam operasional ($scheduledMasuk WIB). Sesuai ketentuan, Anda wajib memberikan alasan keterlambatan sebelum presensi dapat disimpan.',
+                  style:
+                      const TextStyle(fontSize: 11.5, color: Color(0xFF92400E)),
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                desc,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.onSurfaceVariant,
-                  height: 1.3,
+              const SizedBox(height: 12),
+              const Text(
+                'Alasan Keterlambatan:',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: reasonDialogController,
+                maxLines: 3,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText:
+                      'Contoh: Penanganan darurat kebocoran pipa / kendala cuaca buruk...',
+                  hintStyle:
+                      const TextStyle(fontSize: 12, color: AppColors.outline),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ],
           ),
-        ),
-      ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final reason = reasonDialogController.text.trim();
+                if (reason.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content:
+                          Text('Alasan keterlambatan tidak boleh kosong!'),
+                      backgroundColor: AppColors.error,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                setState(() {
+                  _lateReasonController.text = reason;
+                });
+                _onSubmitAttendance();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Simpan & Kirim Presensi'),
+            ),
+          ],
+        );
+      },
     );
   }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -391,16 +365,6 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Step Indicator Banner
-                    _buildStepIndicatorBanner(),
-                    const SizedBox(height: 10),
-
-                    // Peringatan Atribut Perusahaan (Sebelum Pengambilan Foto)
-                    if (!_hasCapturedPhoto) ...[
-                      _buildAttributeWarningBanner(),
-                      const SizedBox(height: 12),
-                    ],
-
                     // Viewfinder: either Live Camera or Captured Result
                     if (!_hasCapturedPhoto)
                       _buildLiveCameraViewfinder()
@@ -444,89 +408,6 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
     );
   }
 
-  // STEP INDICATOR BANNER
-  Widget _buildStepIndicatorBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: _hasCapturedPhoto
-            ? AppColors.tertiaryFixed.withValues(alpha: 0.22)
-            : AppColors.primaryFixed.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _hasCapturedPhoto
-              ? AppColors.tertiaryFixed
-              : AppColors.primaryContainer.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            _hasCapturedPhoto
-                ? Icons.check_circle_rounded
-                : Icons.camera_alt_rounded,
-            size: 18,
-            color: _hasCapturedPhoto
-                ? AppColors.tertiaryContainer
-                : AppColors.primary,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _hasCapturedPhoto
-                  ? 'Langkah 2 dari 2: Foto & Stempel Terverifikasi Siap Dikirim'
-                  : 'Langkah 1 dari 2: Ambil Foto Selfie untuk Memvalidasi Kehadiran',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: _hasCapturedPhoto
-                    ? AppColors.tertiaryContainer
-                    : AppColors.primary,
-                fontFamily: 'Inter',
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // PERINGATAN ATRIBUT PERUSAHAAN (SEBELUM PENGAMBILAN FOTO)
-  Widget _buildAttributeWarningBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB), // Soft Amber Alert
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFFCD34D), // Amber-300
-          width: 1.0,
-        ),
-      ),
-      child: const Row(
-        children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: Color(0xFFD97706),
-            size: 20,
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Pastikan anda menggunakan atribut perusahaan',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF92400E),
-                fontFamily: 'Inter',
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // TOP CONTEXT APP BAR
   PreferredSizeWidget _buildTopAppBar(BuildContext context) {
     return AppBar(
@@ -561,7 +442,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            _hasCapturedPhoto ? 'Hasil Foto Selfie' : 'Ambil Foto Selfie',
+            _hasCapturedPhoto ? 'Hasil Swafoto' : 'Ambil Swafoto',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -586,8 +467,8 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
               Flexible(
                 child: Text(
                   _hasCapturedPhoto
-                      ? 'Foto & Stempel Telemetri Siap Dikirim'
-                      : 'Posisikan wajah Anda pada kamera depan',
+                      ? 'Foto & Stempel Lokasi Siap Dikirim'
+                      : 'Posisikan kamera swafoto di lokasi tugas',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 11,
@@ -780,68 +661,29 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                 ),
               ),
 
-              // Live Face Detection Guide Frame (Oval with pulsating guidance)
+              // Camera Viewfinder Frame
               Center(
-                child: ScaleTransition(
-                  scale: _pulseAnimation,
-                  child: Container(
-                    width: 210,
-                    height: 270,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(105),
-                      border: Border.all(
-                        color: AppColors.tertiaryFixed.withValues(alpha: 0.85),
-                        width: 2.2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.tertiaryFixed.withValues(alpha: 0.25),
-                          blurRadius: 18,
-                        ),
-                      ],
+                child: Container(
+                  width: 240,
+                  height: 280,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.tertiaryFixed.withValues(alpha: 0.85),
+                      width: 2,
                     ),
-                    child: Stack(
-                      children: [
-                        // Animated Scanning Line
-                        AnimatedBuilder(
-                          animation: _scanAnimation,
-                          builder: (context, child) {
-                            return Positioned(
-                              top: 270 * _scanAnimation.value,
-                              left: 20,
-                              right: 20,
-                              child: Container(
-                                height: 2,
-                                decoration: const BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      AppColors.tertiaryFixed,
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.tertiaryFixed,
-                                      blurRadius: 8,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-
-                        // Center Target Guide Icon
-                        const Center(
-                          child: Icon(
-                            Icons.filter_center_focus_rounded,
-                            size: 38,
-                            color: Colors.white24,
-                          ),
-                        ),
-                      ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.tertiaryFixed.withValues(alpha: 0.15),
+                        blurRadius: 16,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.filter_center_focus_rounded,
+                      size: 42,
+                      color: Colors.white38,
                     ),
                   ),
                 ),
@@ -864,14 +706,14 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                   child: const Row(
                     children: [
                       Icon(
-                        Icons.info_outline_rounded,
+                        Icons.camera_alt_outlined,
                         color: AppColors.tertiaryFixed,
                         size: 16,
                       ),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Posisikan wajah Anda tegak lurus di dalam bingkai oval',
+                          'Posisikan kamera untuk swafoto di lokasi tugas',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -994,7 +836,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                           ),
                           SizedBox(width: 6),
                           Text(
-                            'Liveness Valid',
+                            'Swafoto Siap',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 10.5,
@@ -1016,9 +858,9 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                       ),
                       child: const Center(
                         child: Icon(
-                          Icons.verified_rounded,
+                          Icons.camera_alt_rounded,
                           color: AppColors.tertiaryFixed,
-                          size: 18,
+                          size: 16,
                         ),
                       ),
                     ),
@@ -1026,7 +868,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                 ),
               ),
 
-              // Subtle Corner Brackets HUD & Biometric Score Badge
+              // Subtle Corner Brackets HUD Framing
               Center(
                 child: SizedBox(
                   width: 210,
@@ -1052,41 +894,6 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                       Align(
                         alignment: Alignment.bottomRight,
                         child: _buildCornerBracket(isTop: false, isLeft: false),
-                      ),
-                      // Biometric Score Pill
-                      Align(
-                        alignment: Alignment.center,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 3.5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.inverseSurface.withValues(alpha: 0.88),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.tertiaryFixed),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.done_all_rounded,
-                                size: 14,
-                                color: AppColors.tertiaryFixed,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'VALID $_biometricScore%',
-                                style: const TextStyle(
-                                  color: AppColors.tertiaryFixed,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ],
                   ),
@@ -1257,7 +1064,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                               children: [
                                 Flexible(
                                   child: Text(
-                                    '${widget.distanceHq} dari Kantor Pusat (HQ)',
+                                    '${widget.distanceHq} dari ${widget.targetOfficeName}',
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       color: AppColors.tertiaryFixed,
@@ -1267,9 +1074,9 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Text(
-                                  'Radius 150m: Valid',
-                                  style: TextStyle(
+                                Text(
+                                  'Jarak: ${widget.distanceHq} ke ${widget.targetOfficeName}',
+                                  style: const TextStyle(
                                     color: AppColors.tertiaryFixed,
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
@@ -1367,7 +1174,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Pastikan wajah Anda mendapat cahaya yang cukup dan tidak menggunakan masker atau penutup wajah.',
+                  'Pastikan swafoto diambil dengan jelas di lokasi tugas dan pencahayaan cukup.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.onSurfaceVariant,
@@ -1435,7 +1242,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
               ),
               const SizedBox(height: 10),
               const Text(
-                'Ambil Foto Selfie',
+                'Ambil Swafoto',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -1519,7 +1326,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                           ),
                           SizedBox(height: 1),
                           Text(
-                            'Seluruh parameter absensi valid & tersertifikasi',
+                            'Seluruh parameter presensi terverifikasi sah',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -1587,14 +1394,119 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: _buildBentoStatItem(
-                  title: 'JARAK HQ',
-                  value: '${widget.distanceHq} (Valid)',
-                  valueColor: AppColors.tertiaryContainer,
+                  title: 'JARAK KE KANTOR',
+                  value: widget.distanceHq,
+                  valueColor: AppColors.primary,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
+
+          // LATE NOTICE & MANDATORY REASON INPUT
+          Builder(
+            builder: (context) {
+              final settings = context.watch<SystemSettingsProvider>().operationalHours;
+              final checkTime = _capturedDateTime ?? _currentTime;
+              final isLate = widget.slotType == AttendanceSlotType.masuk &&
+                  settings.isLateForCheckIn(checkTime);
+              final lateMinutes = settings.getLateDurationMinutes(checkTime);
+
+              if (!isLate) return const SizedBox.shrink();
+
+              return Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF59E0B), width: 1.2),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFB45309)),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Tercatat Terlambat ($lateMinutes Menit)',
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFFB45309),
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFB45309),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'WAJIB ALASAN',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Batas jam masuk kantor: ${settings.masuk} WIB (+ toleransi ${settings.toleransiMenit} menit). Anda wajib memberikan alasan keterlambatan sebelum presensi dapat dikirim.',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF92400E),
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _lateReasonController,
+                          maxLines: 2,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: AppColors.onSurface,
+                            fontFamily: 'Inter',
+                          ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            prefixIcon: const Icon(Icons.edit_note_rounded, size: 18, color: Color(0xFFB45309)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFF59E0B)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFFCD34D)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: Color(0xFFB45309), width: 1.5),
+                            ),
+                            hintText: 'Tuliskan alasan keterlambatan Anda di sini (wajib)...',
+                            hintStyle: const TextStyle(fontSize: 11.5, color: AppColors.outline),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              );
+            },
+          ),
 
           // Editable Note Input Field
           Container(
@@ -1758,76 +1670,36 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
         ),
         const SizedBox(height: 10),
 
-        // 2 Secondary Buttons: Ambil Ulang Foto & Pusat Bantuan
-        Row(
-          children: [
-            // Ambil Ulang Foto Button
-            Expanded(
-              child: SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  onPressed: _isSubmitting ? null : _onRetakePhoto,
-                  icon: const Icon(
-                    Icons.replay_rounded,
-                    size: 18,
-                    color: AppColors.secondary,
-                  ),
-                  label: const Text(
-                    'Ambil Ulang Foto',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: AppColors.surfaceContainerLowest,
-                    side: BorderSide(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.35),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+        // Secondary Button: Ambil Ulang Foto
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: OutlinedButton.icon(
+            onPressed: _isSubmitting ? null : _onRetakePhoto,
+            icon: const Icon(
+              Icons.replay_rounded,
+              size: 18,
+              color: AppColors.secondary,
+            ),
+            label: const Text(
+              'Ambil Ulang Foto',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurface,
+                fontFamily: 'Inter',
               ),
             ),
-            const SizedBox(width: 10),
-
-            // Pusat Bantuan Button
-            Expanded(
-              child: SizedBox(
-                height: 44,
-                child: OutlinedButton.icon(
-                  onPressed: _onHelpPressed,
-                  icon: const Icon(
-                    Icons.help_outline_rounded,
-                    size: 18,
-                    color: AppColors.outline,
-                  ),
-                  label: const Text(
-                    'Pusat Bantuan',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onSurface,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: AppColors.surfaceContainerLowest,
-                    side: BorderSide(
-                      color: AppColors.outlineVariant.withValues(alpha: 0.35),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: AppColors.surfaceContainerLowest,
+              side: BorderSide(
+                color: AppColors.outlineVariant.withValues(alpha: 0.35),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-          ],
+          ),
         ),
       ],
     );

@@ -163,7 +163,7 @@ class _SplashScreenState extends State<SplashScreen>
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
-                          'SISTEM PRESENSI KORPORAT',
+                          'SISTEM PRESENSI LAPANGAN',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -174,7 +174,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Presensi Karyawan Cepat, Akurat & Terverifikasi',
+                        'Presensi Kehadiran Jarak Jauh',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.white.withValues(alpha: 0.7),
@@ -212,7 +212,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Tirtafield Enterprise v1.0.0',
+                      'Dikembangkan Oleh PUSIMPEL TIRTA KEPRI',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.white.withValues(alpha: 0.4),

@@ -29,6 +29,11 @@ class ApprovalStatusBadge extends StatelessWidget {
         fg = AppColors.danger;
         icon = Icons.highlight_off_rounded;
         break;
+      case ApprovalStatus.escalated:
+        bg = const Color(0xFFF3E8FF);
+        fg = const Color(0xFF7C3AED);
+        icon = Icons.bolt_rounded;
+        break;
     }
 
     return Container(

@@ -20,6 +20,10 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Konfigurasi 4 Slot Presensi'),
       ),
       body: SingleChildScrollView(
@@ -28,13 +32,13 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Jadwal & Batas Waktu 4x Absen',
+              'Jadwal & Batas Waktu 4 Sesi Presensi',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _buildTimeSlotTile(
               slotNumber: 1,
-              title: '1. Absen Masuk',
+              title: '1. Presensi Masuk',
               time: _timeMasuk,
               color: AppColors.checkIn,
               onTap: () async {
@@ -67,7 +71,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
             const SizedBox(height: 8),
             _buildTimeSlotTile(
               slotNumber: 4,
-              title: '4. Absen Pulang',
+              title: '4. Presensi Pulang',
               time: _timePulang,
               color: AppColors.checkOut,
               onTap: () async {
@@ -136,7 +140,7 @@ class _SystemSettingsScreenState extends State<SystemSettingsScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       backgroundColor: AppColors.success,
-                      content: Text('Konfigurasi 4 slot absensi berhasil diperbarui!'),
+                      content: Text('Konfigurasi 4 sesi presensi berhasil diperbarui!'),
                     ),
                   );
                   Navigator.pop(context);

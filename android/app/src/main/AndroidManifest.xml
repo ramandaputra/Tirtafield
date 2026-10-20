@@ -5,7 +5,8 @@
     <application
         android:label="tirtafield"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -34,10 +35,10 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- Google Maps API Key -->
+        <!-- Google Maps API Key (Isi jika menggunakan Google Maps SDK) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="cb1_4ns5_1_ac9e8b38ad585a28159bf506" />
+            android:value="" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

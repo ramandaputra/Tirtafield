@@ -62,6 +62,10 @@ class AuthProvider extends ChangeNotifier {
             department: d['department'].toString(),
             position: d['position'].toString(),
             avatarUrl: d['avatar_url']?.toString(),
+            officeId: d['office_id']?.toString() ?? d['officeId']?.toString() ?? 'hq',
+            officeName: d['office_name']?.toString() ??
+                d['officeName']?.toString() ??
+                'Kantor Pusat Tirtafield Tanjung Pinang',
           );
           _isAuthenticated = true;
           _loginError = null;
@@ -170,6 +174,80 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateCurrentUserProfile({
+    required String newName,
+    required String newDepartment,
+    String? newPosition,
+    String? newPhone,
+  }) async {
+    final oldUser = _currentUser;
+    final updated = oldUser.copyWith(
+      name: newName,
+      department: newDepartment,
+      position: newPosition ?? oldUser.position,
+      phone: newPhone ?? oldUser.phone,
+    );
+    _currentUser = updated;
+    final idx = _availableUsers.indexWhere((u) => u.id == _currentUser.id);
+    if (idx != -1) {
+      _availableUsers[idx] = updated;
+    }
+    notifyListeners();
+
+    try {
+      await http
+          .post(
+            Uri.parse(ApiConfig.updateProfileUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'id': _currentUser.id,
+              'name': newName,
+              'department': newDepartment,
+              'position': updated.position,
+              'phone': updated.phone,
+              'actor_role': _currentUser.role.name,
+            }),
+          )
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {}
+
+    return true;
+  }
+
+  /// Memverifikasi PIN lama dan memperbarui dengan PIN baru untuk pengguna aktif
+  Future<bool> changePin({
+    required String oldPin,
+    required String newPin,
+  }) async {
+    final currentPin = _currentUser.pin.isNotEmpty ? _currentUser.pin : '123456';
+    if (oldPin.trim() != currentPin) {
+      return false;
+    }
+
+    _currentUser = _currentUser.copyWith(pin: newPin.trim());
+    final idx = _availableUsers.indexWhere((u) => u.id == _currentUser.id);
+    if (idx != -1) {
+      _availableUsers[idx] = _currentUser;
+    }
+    notifyListeners();
+
+    try {
+      await http
+          .post(
+            Uri.parse(ApiConfig.updateProfileUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'id': _currentUser.id,
+              'pin': newPin.trim(),
+              'actor_role': _currentUser.role.name,
+            }),
+          )
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {}
+
+    return true;
+  }
+
   /// Update user data nama lengkap dan divisi penempatan (HANYA DAPAT DILAKUKAN OLEH SUPERADMIN)
   Future<bool> updateUserInfoBySuperadmin({
     required String targetUserId,
@@ -177,6 +255,8 @@ class AuthProvider extends ChangeNotifier {
     required String newDepartment,
     String? newPosition,
     UserRole? newRole,
+    String? newOfficeId,
+    String? newOfficeName,
   }) async {
     if (!isStaffIT) {
       return false;
@@ -190,6 +270,8 @@ class AuthProvider extends ChangeNotifier {
         department: newDepartment,
         position: newPosition ?? oldUser.position,
         role: newRole ?? oldUser.role,
+        officeId: newOfficeId ?? oldUser.officeId,
+        officeName: newOfficeName ?? oldUser.officeName,
       );
       _availableUsers[idx] = updated;
 
@@ -207,6 +289,8 @@ class AuthProvider extends ChangeNotifier {
                 'id': targetUserId,
                 'name': newName,
                 'department': newDepartment,
+                'office_id': updated.officeId,
+                'office_name': updated.officeName,
                 'is_superadmin': true,
                 'actor_role': 'staffIT',
               }),

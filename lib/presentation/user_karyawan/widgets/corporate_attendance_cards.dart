@@ -57,7 +57,7 @@ class CorporateAttendanceCards extends StatelessWidget {
                 ),
               ),
               Text(
-                '4 Sesi Absensi',
+                '4 Sesi Presensi',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -70,13 +70,13 @@ class CorporateAttendanceCards extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
-        // CARD 1: Absen Masuk
+        // CARD 1: Presensi Masuk
         if (slot1Completed)
           _buildCompletedCard(
-            title: 'Absen Masuk',
+            title: 'Presensi Masuk',
             badgeText: 'TEPAT WAKTU',
             subtitle:
-                'Check-in Pagi · ${slot1Item?.recordedTime != null ? DateTimeHelper.formatHHmm(slot1Item!.recordedTime!) : "08:15"} WIB',
+                'Presensi Pagi · ${slot1Item?.recordedTime != null ? DateTimeHelper.formatHHmm(slot1Item!.recordedTime!) : "08:15"} WIB',
             icon: Icons.login_rounded,
           )
         else
@@ -84,19 +84,19 @@ class CorporateAttendanceCards extends StatelessWidget {
             context: context,
             slotType: AttendanceSlotType.masuk,
             category: 'SESI PAGI',
-            title: 'Absen Masuk',
+            title: 'Presensi Masuk',
             subtitle: 'Jadwal masuk: 08:00 WIB',
-            buttonLabel: 'Ambil Absen Masuk',
+            buttonLabel: 'Lakukan Presensi Masuk',
             icon: Icons.login_rounded,
             authProv: authProv,
             attendanceProv: attendanceProv,
           ),
         const SizedBox(height: 12),
 
-        // CARD 2: Absen Istirahat (Mockup Active CTA)
+        // CARD 2: Presensi Istirahat Keluar (Mockup Active CTA)
         if (isSlot2Done)
           _buildCompletedCard(
-            title: 'Absen Istirahat',
+            title: 'Presensi Istirahat Keluar',
             badgeText: 'SELESAI',
             subtitle:
                 'Sesi Siang · ${DateTimeHelper.formatHHmm(slot2Item!.recordedTime!)} WIB',
@@ -107,9 +107,9 @@ class CorporateAttendanceCards extends StatelessWidget {
             context: context,
             slotType: AttendanceSlotType.istirahatKeluar,
             category: 'SESI SIANG',
-            title: 'Absen Istirahat',
+            title: 'Presensi Istirahat Keluar',
             subtitle: 'Jadwal baku: 12:00 – 13:00 WIB',
-            buttonLabel: 'Ambil Absen Istirahat',
+            buttonLabel: 'Lakukan Presensi Istirahat',
             icon: Icons.restaurant_rounded,
             authProv: authProv,
             attendanceProv: attendanceProv,
@@ -118,16 +118,16 @@ class CorporateAttendanceCards extends StatelessWidget {
           _buildLockedCard(
             icon: Icons.restaurant_rounded,
             category: 'Sesi Siang · Belum Dimulai',
-            title: 'Absen Istirahat',
+            title: 'Presensi Istirahat Keluar',
             subtitle: 'Jadwal baku: 12:00 – 13:00 WIB',
             trailingIcon: Icons.lock_outline_rounded,
           ),
         const SizedBox(height: 12),
 
-        // CARD 3: Absen Selesai Istirahat
+        // CARD 3: Presensi Istirahat Masuk
         if (isSlot3Done)
           _buildCompletedCard(
-            title: 'Absen Selesai Istirahat',
+            title: 'Presensi Istirahat Masuk',
             badgeText: 'SELESAI',
             subtitle:
                 'Selesai Istirahat · ${DateTimeHelper.formatHHmm(slot3Item!.recordedTime!)} WIB',
@@ -138,9 +138,9 @@ class CorporateAttendanceCards extends StatelessWidget {
             context: context,
             slotType: AttendanceSlotType.istirahatMasuk,
             category: 'SESI SIANG',
-            title: 'Absen Selesai Istirahat',
+            title: 'Presensi Istirahat Masuk',
             subtitle: 'Batas istirahat berakhir: 13:00 WIB',
-            buttonLabel: 'Ambil Selesai Istirahat',
+            buttonLabel: 'Lakukan Selesai Istirahat',
             icon: Icons.coffee_rounded,
             authProv: authProv,
             attendanceProv: attendanceProv,
@@ -149,19 +149,19 @@ class CorporateAttendanceCards extends StatelessWidget {
           _buildLockedCard(
             icon: Icons.coffee_rounded,
             category: 'Sesi Siang · Menunggu Istirahat',
-            title: 'Absen Selesai Istirahat',
-            subtitle: 'Tersedia setelah check-out istirahat',
+            title: 'Presensi Istirahat Masuk',
+            subtitle: 'Tersedia setelah presensi istirahat keluar',
             trailingIcon: Icons.lock_outline_rounded,
           ),
         const SizedBox(height: 12),
 
-        // CARD 4: Absen Pulang
+        // CARD 4: Presensi Pulang
         if (isSlot4Done)
           _buildCompletedCard(
-            title: 'Absen Pulang',
+            title: 'Presensi Pulang',
             badgeText: 'SELESAI',
             subtitle:
-                'Check-out Sore · ${DateTimeHelper.formatHHmm(slot4Item!.recordedTime!)} WIB',
+                'Presensi Sore · ${DateTimeHelper.formatHHmm(slot4Item!.recordedTime!)} WIB',
             icon: Icons.logout_rounded,
           )
         else if (slot4Active)
@@ -169,9 +169,9 @@ class CorporateAttendanceCards extends StatelessWidget {
             context: context,
             slotType: AttendanceSlotType.pulang,
             category: 'SESI SORE',
-            title: 'Absen Pulang',
+            title: 'Presensi Pulang',
             subtitle: 'Batas jam kerja berakhir: 17:00 WIB',
-            buttonLabel: 'Ambil Absen Pulang',
+            buttonLabel: 'Lakukan Presensi Pulang',
             icon: Icons.logout_rounded,
             authProv: authProv,
             attendanceProv: attendanceProv,
@@ -180,7 +180,7 @@ class CorporateAttendanceCards extends StatelessWidget {
           _buildLockedCard(
             icon: Icons.logout_rounded,
             category: 'Sesi Sore · Belum Dimulai',
-            title: 'Absen Pulang',
+            title: 'Presensi Pulang',
             subtitle: 'Batas jam kerja berakhir: 17:00 WIB',
             trailingIcon: Icons.lock_clock_outlined,
           ),
@@ -213,32 +213,33 @@ class CorporateAttendanceCards extends StatelessWidget {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              // Icon Box
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.tertiaryContainer.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: AppColors.tertiaryContainer,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
+          // Icon Box
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.tertiaryContainer.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: AppColors.tertiaryContainer,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
                         title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -246,41 +247,44 @@ class CorporateAttendanceCards extends StatelessWidget {
                           fontFamily: 'Inter',
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.tertiaryContainer.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          badgeText,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.tertiaryContainer,
-                            letterSpacing: 0.5,
-                          ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.tertiaryContainer.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        badgeText,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.tertiaryContainer,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
                     ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           const Icon(
             Icons.check_circle_rounded,
             color: AppColors.tertiaryContainer,
@@ -492,58 +496,62 @@ class CorporateAttendanceCards extends StatelessWidget {
           ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                // Gray Icon Box
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: AppColors.outline,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      category,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.outline,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            // Gray Icon Box
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.outline,
+                size: 22,
+              ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.outline,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSurface,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(

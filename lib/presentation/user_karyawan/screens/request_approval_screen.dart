@@ -15,11 +15,11 @@ class RequestApprovalScreen extends StatefulWidget {
 
 class _RequestApprovalScreenState extends State<RequestApprovalScreen> {
   final _formKey = GlobalKey<FormState>();
-  ApprovalType _selectedType = ApprovalType.cuti;
+  ApprovalType _selectedType = ApprovalType.koreksiAbsen;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _reasonController = TextEditingController();
-  DateTime _startDate = DateTime.now().add(const Duration(days: 1));
-  DateTime _endDate = DateTime.now().add(const Duration(days: 2));
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now();
   bool _isSubmitting = false;
 
   @override
@@ -33,7 +33,11 @@ class _RequestApprovalScreenState extends State<RequestApprovalScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pengajuan Approval'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Pengajuan Persetujuan Presensi'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -47,8 +51,8 @@ class _RequestApprovalScreenState extends State<RequestApprovalScreen> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(
-                  labelText: 'Judul Permohonan',
-                  hintText: 'Contoh: Permohonan Cuti Tahunan',
+                  labelText: 'Judul Permohonan Presensi',
+                  hintText: 'Contoh: Koreksi Presensi Masuk',
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -64,8 +68,8 @@ class _RequestApprovalScreenState extends State<RequestApprovalScreen> {
                 controller: _reasonController,
                 maxLines: 4,
                 decoration: const InputDecoration(
-                  labelText: 'Alasan / Keterangan Lengkap',
-                  hintText: 'Jelaskan keperluan dan detail pengajuan secara lengkap...',
+                  labelText: 'Alasan / Keterangan Presensi',
+                  hintText: 'Jelaskan kendala, lokasi, atau rincian presensi yang memerlukan persetujuan...',
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -93,9 +97,12 @@ class _RequestApprovalScreenState extends State<RequestApprovalScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'Kirim Pengajuan ke Direktur',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      : const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Kirim Pengajuan Persetujuan Presensi',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
                         ),
                 ),
               ),
@@ -231,7 +238,7 @@ class _RequestApprovalScreenState extends State<RequestApprovalScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             backgroundColor: AppColors.success,
-            content: Text('Pengajuan berhasil dikirim ke Direktur!'),
+            content: Text('Pengajuan persetujuan presensi berhasil dikirim ke Direktur!'),
           ),
         );
         Navigator.pop(context);

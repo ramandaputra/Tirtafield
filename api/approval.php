@@ -25,7 +25,7 @@ if ($action === 'list') {
 
     $pgwId    = (int)($input['user_id'] ?? 1);
     $pgwNama  = $input['user_name'] ?? 'Karyawan';
-    $tipe     = $input['type'] ?? 'izin';
+    $tipe     = $input['type'] ?? 'koreksi_absen';
     $alasan   = $input['reason'] ?? '';
     $tglMulai = $input['start_date'] ?? date('Y-m-d');
     $tglSelesai = $input['end_date'] ?? $tglMulai;

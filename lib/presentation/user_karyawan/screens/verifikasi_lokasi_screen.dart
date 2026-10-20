@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/api_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_time_helper.dart';
 import '../../../data/models/attendance_model.dart';
+import '../../../data/models/system_settings_model.dart';
+import '../../../state/auth_provider.dart';
+import '../../../state/system_settings_provider.dart';
 import '../../../core/services/location_service.dart';
 import '../widgets/leaflet_map_view.dart';
 import 'ambil_foto_absensi_screen.dart';
@@ -17,7 +22,7 @@ class VerifikasiLokasiScreen extends StatefulWidget {
   const VerifikasiLokasiScreen({
     super.key,
     this.slotType = AttendanceSlotType.masuk,
-    this.slotTitle = 'Absen Masuk',
+    this.slotTitle = 'Presensi Masuk',
   });
 
   @override
@@ -31,6 +36,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
   bool _isRefreshingLocation = false;
   bool _isLoadingLocation = true;
   LocationResult? _locationResult;
+  OfficeLocationItem? _targetOffice;
 
   int _mapZoom = 16;
   // 0: Peta Jalan (Carto/Google Style), 1: OpenStreetMap Resmi (Bebas API), 2: Satelit ArcGIS
@@ -76,10 +82,52 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
       if (isManualRefresh) _isRefreshingLocation = true;
     });
 
-    final result = await LocationService.getCurrentLocation();
+    OfficeLocationItem? targetOffice;
+    try {
+      final authProv = context.read<AuthProvider>();
+      final settingsProv = context.read<SystemSettingsProvider>();
+      final user = authProv.currentUser;
+      final userOfficeId = user.officeId.trim();
+      final userOfficeName = user.officeName.trim().toLowerCase();
+
+      // 1. Cari berdasarkan ID tepat di daftar titik kantor aktif
+      OfficeLocationItem? found;
+      if (userOfficeId.isNotEmpty) {
+        for (final o in settingsProv.geofencing.offices) {
+          if (o.id.toLowerCase() == userOfficeId.toLowerCase()) {
+            found = o;
+            break;
+          }
+        }
+      }
+
+      // 2. Jika belum cocok berdasarkan ID, cari berdasarkan kesamaan nama kantor penempatan
+      if (found == null && userOfficeName.isNotEmpty) {
+        for (final o in settingsProv.geofencing.offices) {
+          final oName = o.name.toLowerCase();
+          if (oName == userOfficeName ||
+              oName.contains(userOfficeName) ||
+              userOfficeName.contains(oName)) {
+            found = o;
+            break;
+          }
+        }
+      }
+
+      targetOffice = found ?? settingsProv.primaryOffice;
+    } catch (_) {}
+
+    final result = await LocationService.getCurrentLocation(
+      targetLat: targetOffice?.latitude ?? LocationService.hqLatitude,
+      targetLng: targetOffice?.longitude ?? LocationService.hqLongitude,
+      targetOfficeName: targetOffice?.name ?? LocationService.hqLocationName,
+      targetOfficeType: targetOffice?.officeTypeLabel ?? 'Kantor Penempatan',
+      allowedRadius: targetOffice?.radius ?? LocationService.maxAllowedRadiusMeters,
+    );
 
     if (mounted) {
       setState(() {
+        _targetOffice = targetOffice;
         _locationResult = result;
         _isLoadingLocation = false;
         _isRefreshingLocation = false;
@@ -88,13 +136,11 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
       if (isManualRefresh) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: result.isWithinRadius
-                ? AppColors.tertiaryContainer
-                : AppColors.secondary,
+            backgroundColor: AppColors.secondary,
             content: Text(
-              'Lokasi GPS: ${result.formattedCoordinates} (Akurasi ${result.formattedAccuracy})',
+              'Lokasi GPS: ${result.formattedCoordinates} • Jarak ke ${targetOffice?.name ?? "Kantor Penempatan"}: ${result.formattedDistanceHq}',
             ),
-            duration: const Duration(seconds: 2),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -106,9 +152,19 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
   }
 
   void _onContinueToPhoto() {
+    if (_isLoadingLocation && _locationResult == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sedang menyinkronkan koordinat GPS Anda, mohon tunggu sebentar...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     final distanceStr = _locationResult != null
         ? _locationResult!.formattedDistanceHq
-        : '8.5 km';
+        : '0 m';
     final projectLocation =
         _locationResult?.locationName ?? LocationService.hqLocationName;
     final projectAddress = _locationResult?.address ?? LocationService.hqAddress;
@@ -121,6 +177,9 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
           projectLocation: projectLocation,
           projectAddress: projectAddress,
           distanceHq: distanceStr,
+          isWithinRadius: true,
+          targetOfficeName: _targetOffice?.name ?? _locationResult?.targetOfficeName ?? 'Kantor Penempatan',
+          targetOfficeType: _targetOffice?.officeTypeLabel ?? _locationResult?.targetOfficeType ?? 'Kantor Penempatan',
           latitude: _locationResult?.latitude,
           longitude: _locationResult?.longitude,
           coordinates: _locationResult?.formattedCoordinates,
@@ -146,11 +205,15 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                 _buildDigitalTimeCard(),
                 const SizedBox(height: 14),
 
-                // 2. Interactive Vector Map Visualizer Card
+                // 2. Status Radius & Pelacakan Lapangan
+                _buildRadiusTrackingCard(),
+                const SizedBox(height: 14),
+
+                // 3. Interactive Vector Map Visualizer Card
                 _buildMapVisualizerCard(),
                 const SizedBox(height: 14),
 
-                // 3. Field Work Location Details Card
+                // 4. Field Work Location Details Card
                 _buildLocationDetailsCard(),
                 const SizedBox(height: 20),
               ],
@@ -255,86 +318,97 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today_rounded,
-                    size: 14,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    DateTimeHelper.formatIndonesianDate(_currentTime),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    clockStr,
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                      fontFamily: 'Inter',
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'WIB',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.secondary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.tertiaryFixed.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: AppColors.tertiaryContainer,
-                        shape: BoxShape.circle,
-                      ),
+                    const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 14,
+                      color: AppColors.onSurfaceVariant,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      widget.slotTitle,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.tertiaryContainer,
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        DateTimeHelper.formatIndonesianDate(_currentTime),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: 'Inter',
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      clockStr,
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        fontFamily: 'Inter',
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'WIB',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.tertiaryFixed.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: AppColors.tertiaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          widget.slotTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.tertiaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           Container(
             width: 48,
             height: 48,
@@ -354,35 +428,190 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
     );
   }
 
-  // 2. REAL GOOGLE MAPS VIEWPORT & VISUALIZER CARD
+  // 2. KARTU PELACAKAN JARAK PENUGASAN LAPANGAN
+  Widget _buildRadiusTrackingCard() {
+    final distanceStr = _locationResult?.formattedDistanceHq ?? '0 m';
+    final targetOffice = _targetOffice?.name ?? _locationResult?.targetOfficeName ?? 'Kantor Penempatan';
+    final officeType = _targetOffice?.officeTypeLabel ?? _locationResult?.targetOfficeType ?? 'Kantor Penempatan';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.share_location_rounded,
+                  color: AppColors.secondary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Absensi Penugasan Lapangan',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    SizedBox(height: 1),
+                    Text(
+                      'Perhitungan jarak otomatis dari posisi GPS lapangan',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE6F4EA),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF34A853).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      size: 11,
+                      color: Color(0xFF137333),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'GPS AKTIF',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF137333),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.15),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'JARAK DARI KANTOR PENEMPATAN',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.secondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        distanceStr,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.secondary,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Basis Penempatan: $targetOffice ($officeType)',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 3. REAL GOOGLE MAPS VIEWPORT & VISUALIZER CARD
   Widget _buildMapActionButton({
     required IconData icon,
     required VoidCallback onTap,
     Color iconColor = AppColors.onSurfaceVariant,
   }) {
     return Container(
-      width: 32,
-      height: 32,
+      width: 34,
+      height: 34,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
+        color: Colors.white.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          color: AppColors.outlineVariant.withValues(alpha: 0.35),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Icon(
-          icon,
-          size: 18,
-          color: iconColor,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Center(
+            child: Icon(
+              icon,
+              size: 18,
+              color: iconColor,
+            ),
+          ),
         ),
       ),
     );
@@ -395,6 +624,23 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
     final popupHtml = '<b>Lokasi Presensi Anda</b><br>'
         'Koordinat: ${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}<br>'
         'Akurasi: ${_locationResult?.formattedAccuracy ?? "12 m (Stabil)"}';
+
+    final officeName = _targetOffice?.name ?? _locationResult?.targetOfficeName ?? 'Kantor Tirtafield';
+
+    String? allOfficesJson;
+    try {
+      final settingsProv = context.read<SystemSettingsProvider>();
+      allOfficesJson = jsonEncode(
+        settingsProv.geofencing.offices.map((o) => {
+          'id': o.id,
+          'name': o.name,
+          'lat': o.latitude,
+          'lng': o.longitude,
+          'rad': o.radius,
+          'isPrimary': o.isPrimary,
+        }).toList(),
+      );
+    } catch (_) {}
 
     // Jika di Web dan memilih Leaflet OSM (0), gunakan Real Leaflet JS Engine
     if (kIsWeb && _mapProviderIndex == 0) {
@@ -412,6 +658,11 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                   lng: lng,
                   zoom: zoom,
                   popupText: popupHtml,
+                  targetLat: _targetOffice?.latitude,
+                  targetLng: _targetOffice?.longitude,
+                  targetName: officeName,
+                  targetRadius: _targetOffice?.radius.toDouble() ?? _locationResult?.allowedRadiusMeters.toDouble(),
+                  allOfficesJson: allOfficesJson,
                 ),
               ),
 
@@ -804,7 +1055,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
 
                   // 9. Bottom Right: "Buka di Peta (Google / OSM)" Button
                   Positioned(
-                    bottom: 8,
+                    bottom: 10,
                     right: 10,
                     child: Material(
                       color: Colors.transparent,
@@ -813,17 +1064,16 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                            horizontal: 12,
+                            vertical: 7,
                           ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1A73E8),
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF1A73E8)
-                                    .withValues(alpha: 0.35),
-                                blurRadius: 6,
+                                color: const Color(0xFF1A73E8).withValues(alpha: 0.35),
+                                blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
                             ],
@@ -832,16 +1082,16 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.map_outlined,
-                                size: 12,
+                                Icons.map_rounded,
+                                size: 14,
                                 color: Colors.white,
                               ),
                               SizedBox(width: 5),
                               Text(
                                 'Buka di Peta',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
                                   color: Colors.white,
                                   fontFamily: 'Inter',
                                 ),
@@ -894,31 +1144,38 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle_rounded,
-                        color: AppColors.tertiaryContainer,
-                        size: 15,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Radius Toleransi Kerja: 150 meter',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.tertiaryContainer,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.share_location_rounded,
+                          color: AppColors.secondary,
+                          size: 15,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            'Jarak: ${_locationResult?.formattedDistanceHq ?? "0 m"} ke ${_targetOffice?.name ?? "Kantor Penempatan"}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.secondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     'Geo-Tag: ${_locationResult?.formattedCoordinates ?? '0.9203, 104.4607'}',
                     style: const TextStyle(
                       fontSize: 10,
                       fontFamily: 'monospace',
+                      fontWeight: FontWeight.w600,
                       color: AppColors.outline,
                     ),
                   ),
@@ -1027,39 +1284,50 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
           const SizedBox(height: 10),
 
           // Map Direct Navigation Link with Chooser
-          InkWell(
-            onTap: () {
-              final lat = _locationResult?.latitude ?? LocationService.hqLatitude;
-              final lng = _locationResult?.longitude ?? LocationService.hqLongitude;
-              LocationService.showMapChooserSheet(context, lat, lng);
-            },
-            borderRadius: BorderRadius.circular(8),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.directions_outlined,
-                    size: 16,
-                    color: Color(0xFF1A73E8),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                final lat = _locationResult?.latitude ?? LocationService.hqLatitude;
+                final lng = _locationResult?.longitude ?? LocationService.hqLongitude;
+                LocationService.showMapChooserSheet(context, lat, lng);
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F0FE),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFFC2E7FF),
                   ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Buka & Navigasi di Maps (Google Maps / OpenStreetMap / Waze)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.directions_rounded,
+                      size: 16,
                       color: Color(0xFF1A73E8),
-                      decoration: TextDecoration.underline,
                     ),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 10,
-                    color: Color(0xFF1A73E8),
-                  ),
-                ],
+                    SizedBox(width: 6),
+                    Text(
+                      'Petunjuk Rute & Navigasi Maps',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A73E8),
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      size: 13,
+                      color: Color(0xFF1A73E8),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1079,27 +1347,34 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Dari Kantor Utama (HQ)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.onSurfaceVariant,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Jarak ke ${_targetOffice?.officeTypeLabel ?? "Kantor Penempatan"}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'HQ Wisma Nusantara',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.outline,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 2),
+                      Text(
+                        _targetOffice?.name ?? 'Kantor Penempatan',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   _locationResult?.formattedDistanceHq ?? '8.5 km',
                   style: const TextStyle(
@@ -1143,22 +1418,24 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
               // Primary Button: Lanjutkan Foto Absensi
               SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: 50,
                 child: ElevatedButton.icon(
                   onPressed: _onContinueToPhoto,
-                  icon: const Icon(Icons.photo_camera_rounded, size: 22),
+                  icon: const Icon(Icons.photo_camera_rounded, size: 20),
                   label: const Text(
-                    'Lanjutkan Foto Absensi',
+                    'Lanjutkan Swafoto Presensi',
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w700,
                       fontFamily: 'Inter',
+                      letterSpacing: 0.2,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.secondary,
                     foregroundColor: Colors.white,
-                    elevation: 0,
+                    elevation: 2,
+                    shadowColor: AppColors.secondary.withValues(alpha: 0.35),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -1174,9 +1451,12 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                 child: OutlinedButton(
                   onPressed: _isRefreshingLocation ? null : _onRefreshLocation,
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: AppColors.surfaceContainer,
-                    foregroundColor: AppColors.onSurfaceVariant,
-                    side: const BorderSide(color: Color(0xFFDAE2FD)),
+                    backgroundColor: AppColors.surfaceContainerLowest,
+                    foregroundColor: AppColors.onSurface,
+                    side: BorderSide(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                      width: 1.2,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1190,17 +1470,22 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.primary,
+                            color: AppColors.secondary,
                           ),
                         )
                       else
-                        const Icon(Icons.refresh_rounded, size: 18),
+                        const Icon(
+                          Icons.refresh_rounded,
+                          size: 18,
+                          color: AppColors.secondary,
+                        ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Segarkan Lokasi',
-                        style: TextStyle(
+                      Text(
+                        _isRefreshingLocation ? 'Memperbarui Titik GPS...' : 'Segarkan Titik Lokasi',
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
+                          fontFamily: 'Inter',
                         ),
                       ),
                     ],

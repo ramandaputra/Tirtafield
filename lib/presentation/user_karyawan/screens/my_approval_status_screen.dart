@@ -32,7 +32,11 @@ class _MyApprovalStatusScreenState extends State<MyApprovalStatusScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Status Pengajuan Saya'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Status Persetujuan Presensi'),
       ),
       body: approvalProv.isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -74,7 +78,7 @@ class _MyApprovalStatusScreenState extends State<MyApprovalStatusScreen> {
           ),
           SizedBox(height: 4),
           Text(
-            'Pengajuan cuti atau izin yang Anda buat akan muncul di sini.',
+            'Pengajuan persetujuan presensi yang Anda ajukan akan ditampilkan di sini.',
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
         ],
@@ -92,21 +96,26 @@ class _MyApprovalStatusScreenState extends State<MyApprovalStatusScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    item.type.label,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      item.type.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 ApprovalStatusBadge(status: item.status),
               ],
             ),
@@ -135,11 +144,15 @@ class _MyApprovalStatusScreenState extends State<MyApprovalStatusScreen> {
                 const Icon(Icons.calendar_today_outlined,
                     size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
-                Text(
-                  'Periode: ${DateTimeHelper.formatReadableDate(item.startDate)} - ${DateTimeHelper.formatReadableDate(item.endDate)}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
+                Expanded(
+                  child: Text(
+                    'Periode: ${DateTimeHelper.formatReadableDate(item.startDate)} - ${DateTimeHelper.formatReadableDate(item.endDate)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],

@@ -1,0 +1,116 @@
+{
+    "operational_hours": {
+        "masuk": "08:00",
+        "istirahat_keluar": "12:00",
+        "istirahat_masuk": "13:00",
+        "pulang": "17:00",
+        "toleransi_menit": 15,
+        "auto_lock_outside": true,
+        "hari_kerja": "Senin - Jumat (5 Hari Kerja)",
+        "daily_schedules": [
+            {
+                "day_of_week": 1,
+                "day_name": "Senin",
+                "is_work_day": true,
+                "masuk": "08:00",
+                "istirahat_keluar": "12:00",
+                "istirahat_masuk": "13:00",
+                "pulang": "17:00",
+                "toleransi_menit": 15
+            },
+            {
+                "day_of_week": 2,
+                "day_name": "Selasa",
+                "is_work_day": true,
+                "masuk": "08:00",
+                "istirahat_keluar": "12:00",
+                "istirahat_masuk": "13:00",
+                "pulang": "17:00",
+                "toleransi_menit": 15
+            },
+            {
+                "day_of_week": 3,
+                "day_name": "Rabu",
+                "is_work_day": true,
+                "masuk": "08:00",
+                "istirahat_keluar": "12:00",
+                "istirahat_masuk": "13:00",
+                "pulang": "17:00",
+                "toleransi_menit": 15
+            },
+            {
+                "day_of_week": 4,
+                "day_name": "Kamis",
+                "is_work_day": true,
+                "masuk": "08:00",
+                "istirahat_keluar": "12:00",
+                "istirahat_masuk": "13:00",
+                "pulang": "17:00",
+                "toleransi_menit": 15
+            },
+            {
+                "day_of_week": 5,
+                "day_name": "Jumat",
+                "is_work_day": true,
+                "masuk": "08:00",
+                "istirahat_keluar": "11:30",
+                "istirahat_masuk": "13:00",
+                "pulang": "17:00",
+                "toleransi_menit": 15
+            },
+            {
+                "day_of_week": 6,
+                "day_name": "Sabtu",
+                "is_work_day": false,
+                "masuk": "08:00",
+                "istirahat_keluar": "12:00",
+                "istirahat_masuk": "12:30",
+                "pulang": "13:00",
+                "toleransi_menit": 15
+            },
+            {
+                "day_of_week": 7,
+                "day_name": "Minggu",
+                "is_work_day": false,
+                "masuk": "08:00",
+                "istirahat_keluar": "12:00",
+                "istirahat_masuk": "13:00",
+                "pulang": "17:00",
+                "toleransi_menit": 15
+            }
+        ]
+    },
+    "geofencing": {
+        "strict_mode": true,
+        "active_office_id": "hq",
+        "offices": [
+            {
+                "id": "hq",
+                "name": "Kantor Pusat PERUMDA Tirta Kepri Tanjung Pinang",
+                "address": "Jl. Wisata Bahari No. 12, Tanjung Pinang Timur, Kepulauan Riau",
+                "latitude": 0.92031,
+                "longitude": 104.46069,
+                "radius": 200,
+                "is_primary": true
+            },
+            {
+                "id": "bintan_center",
+                "name": "Unit Pelayanan Bintan Centre",
+                "address": "Komp. Bintan Centre Blok A No. 5-6, Tanjung Pinang",
+                "latitude": 0.9255,
+                "longitude": 104.4712,
+                "radius": 60,
+                "is_primary": false
+            },
+            {
+                "id": "ipa_sei_pulai",
+                "name": "Instalasi Pengolahan Air (IPA) Sei Pulai",
+                "address": "Kawasan Waduk Sei Pulai, Bintan",
+                "latitude": 0.9081,
+                "longitude": 104.4325,
+                "radius": 100,
+                "is_primary": false
+            }
+        ]
+    }
+}

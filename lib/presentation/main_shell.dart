@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/constants/app_colors.dart';
 import '../data/models/user_model.dart';
 import '../state/auth_provider.dart';
 import 'admin_direktur/screens/dashboard_direktur_screen.dart';
@@ -21,49 +20,12 @@ class MainShell extends StatelessWidget {
         return const HomeKaryawanScreen();
 
       case UserRole.direktur:
-        return Scaffold(
-          body: const DashboardDirekturScreen(),
-          bottomNavigationBar: _buildAdminBottomSwitcher(context, authProv),
-        );
+        // Admin Direktur has its own integrated bottom navigation and complete 11-module portal
+        return const DashboardDirekturScreen();
 
       case UserRole.staffIT:
-        return Scaffold(
-          body: const DashboardITScreen(),
-          bottomNavigationBar: _buildAdminBottomSwitcher(context, authProv),
-        );
+        // Superadmin IT has its own integrated bottom navigation and profile shell
+        return const DashboardITScreen();
     }
-  }
-
-  Widget _buildAdminBottomSwitcher(BuildContext context, AuthProvider authProv) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.cardBorder, width: 1)),
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            const Icon(Icons.shield_outlined, size: 18, color: AppColors.primary),
-            const SizedBox(width: 8),
-            Text(
-              'Panel ${authProv.currentRole.displayName}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-            const Spacer(),
-            TextButton.icon(
-              onPressed: () {
-                authProv.logout();
-              },
-              icon: const Icon(Icons.logout, size: 16, color: AppColors.error),
-              label: const Text(
-                'Keluar / Logout',
-                style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

@@ -6,6 +6,7 @@ import 'package:tirtafield/data/repositories/attendance_repository.dart';
 import 'package:tirtafield/presentation/user_karyawan/screens/ambil_foto_absensi_screen.dart';
 import 'package:tirtafield/state/attendance_provider.dart';
 import 'package:tirtafield/state/auth_provider.dart';
+import 'package:tirtafield/state/system_settings_provider.dart';
 
 void main() {
   testWidgets(
@@ -19,6 +20,7 @@ void main() {
     final attendanceRepo = MockAttendanceRepository();
     final authProvider = AuthProvider();
     final attendanceProvider = AttendanceProvider(repository: attendanceRepo);
+    final settingsProvider = SystemSettingsProvider();
 
     await tester.pumpWidget(
       MultiProvider(
@@ -27,6 +29,9 @@ void main() {
           ChangeNotifierProvider<AttendanceProvider>.value(
             value: attendanceProvider,
           ),
+          ChangeNotifierProvider<SystemSettingsProvider>.value(
+            value: settingsProvider,
+          ),
         ],
         child: const MaterialApp(
           home: AmbilFotoAbsensiScreen(
@@ -34,6 +39,8 @@ void main() {
             slotTitle: 'Absen Istirahat',
             projectLocation: 'Area Proyek Sudirman Office Tower',
             distanceHq: '8.5 km',
+            targetOfficeName: 'Kantor Pusat (HQ)',
+            isWithinRadius: true,
           ),
         ),
       ),
@@ -68,7 +75,7 @@ void main() {
     expect(find.text('Area Proyek Sudirman Office Tower'), findsWidgets);
     // 3. Radius Jarak Lapangan dari Kantor Utama
     expect(find.text('8.5 km dari Kantor Pusat (HQ)'), findsOneWidget);
-    expect(find.text('Radius 150m: Valid'), findsOneWidget);
+    expect(find.text('Dalam Radius (Valid)'), findsOneWidget);
 
     // Verify Bento & Action Buttons
     expect(find.text('Foto & Lokasi Terverifikasi'), findsOneWidget);
@@ -100,7 +107,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     // Verify Success Dialog appears
-    expect(find.text('Presensi Berhasil Dikirim!'), findsOneWidget);
+    expect(find.text('Presensi Berhasil Terkirim!'), findsOneWidget);
     expect(find.text('Kembali ke Beranda'), findsOneWidget);
   });
 }
