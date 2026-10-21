@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_time_helper.dart';
 import '../../../core/widgets/attendance_detail_bottom_sheet.dart';
+import '../../../core/widgets/dashboard_header_banner.dart';
 import '../../../data/models/approval_model.dart';
 import '../../../state/approval_provider.dart';
 import '../../../state/auth_provider.dart';
@@ -140,6 +141,13 @@ class _AdminMonitoringScreenState extends State<AdminMonitoringScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 0. HEADER BANNER KORPORAT TIRTA KEPRI (ASSETS/IMAGES/APP.JPG)
+                const DashboardHeaderBanner(
+                  roleTitle: 'Aplikasi Presensi Lapangan',
+                  roleBadgeColor: AppColors.roleDirektur,
+                ),
+                const SizedBox(height: 14),
+
                 // 1. STATISTIK UTAMA (DIREKTUR) - SEDERHANA & MINIMALIS
                 _buildMainStatisticsBento(
                   totalKaryawanLapangan: totalKaryawanLapangan,
@@ -238,65 +246,15 @@ class _AdminMonitoringScreenState extends State<AdminMonitoringScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Expanded(
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.analytics_outlined,
-                    size: 15,
-                    color: AppColors.roleDirektur,
-                  ),
-                  SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      'Ringkasan Operasional & Persetujuan',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (menungguPersetujuan > 0) ...[
-              const SizedBox(width: 6),
-              InkWell(
-                onTap: onGoToApprovals,
-                borderRadius: BorderRadius.circular(6),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Kelola',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.roleDirektur,
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                      SizedBox(width: 2),
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 9,
-                        color: AppColors.roleDirektur,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
+        const Text(
+          'Ringkasan Operasional & Persetujuan',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Inter',
+          ),
         ),
         const SizedBox(height: 8),
         Row(
@@ -552,7 +510,7 @@ class _AdminMonitoringScreenState extends State<AdminMonitoringScreen>
         onChanged: (val) => setState(() => _searchQuery = val.trim()),
         style: const TextStyle(fontSize: 13, fontFamily: 'Inter'),
         decoration: InputDecoration(
-          hintText: 'Cari nama pegawai, NIP, atau keterangan presensi...',
+          hintText: 'Cari nama pegawai, NIK, atau keterangan presensi...',
           hintStyle: const TextStyle(
             fontSize: 12,
             color: AppColors.onSurfaceVariant,

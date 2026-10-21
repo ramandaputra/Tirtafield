@@ -83,6 +83,7 @@ class ApiAttendanceRepository implements AttendanceRepository {
   Future<DailyAttendanceRecord> recordSlot({
     required String userId,
     required String userName,
+    String? userNip,
     required AttendanceSlotType slotType,
     String? location,
     String? notes,
@@ -95,8 +96,10 @@ class ApiAttendanceRepository implements AttendanceRepository {
       final payload = {
         'user_id': userId,
         'user_name': userName,
+        if (userNip != null && userNip.isNotEmpty) 'nik': userNip,
+        if (userNip != null && userNip.isNotEmpty) 'user_nip': userNip,
         'slot_type': slotType.name,
-        'location': location ?? 'Kantor Tirtafield Tanjung Pinang',
+        'location': location ?? 'Kantor PERUMDA Tirta Kepri Tanjung Pinang',
         'notes': notes ?? '',
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
@@ -121,6 +124,7 @@ class ApiAttendanceRepository implements AttendanceRepository {
     return _fallbackMock.recordSlot(
       userId: userId,
       userName: userName,
+      userNip: userNip,
       slotType: slotType,
       location: location,
       notes: notes,

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/constants/bidang_data.dart';
 import '../../../data/models/user_model.dart';
 import '../../../state/employee_management_provider.dart';
+import '../../../state/system_settings_provider.dart';
 
 class AdminEmployeeOperationalScreen extends StatefulWidget {
   final bool showAppBar;
@@ -20,14 +22,9 @@ class _AdminEmployeeOperationalScreenState
   final String _selectedStatus = 'all';
   final TextEditingController _searchController = TextEditingController();
 
-  final List<String> _departments = [
+  List<String> get _departments => [
     'all',
-    'Operasional Lapangan',
-    'Distribusi Air',
-    'Transmisi & Jaringan',
-    'Produksi & IPA',
-    'Keuangan & Akuntansi',
-    'Pelayanan Pelanggan',
+    ...BidangData.mainOperationalBidang,
   ];
 
   @override
@@ -97,23 +94,16 @@ class _AdminEmployeeOperationalScreenState
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: [
-                _buildFilterChip('Semua Divisi', _selectedDepartment == 'all', () {
-                  setState(() => _selectedDepartment = 'all');
-                }),
-                const SizedBox(width: 8),
-                _buildFilterChip('Operasional Lapangan', _selectedDepartment == 'Operasional Lapangan', () {
-                  setState(() => _selectedDepartment = 'Operasional Lapangan');
-                }),
-                const SizedBox(width: 8),
-                _buildFilterChip('Distribusi Air', _selectedDepartment == 'Distribusi Air', () {
-                  setState(() => _selectedDepartment = 'Distribusi Air');
-                }),
-                const SizedBox(width: 8),
-                _buildFilterChip('Transmisi & Jaringan', _selectedDepartment == 'Transmisi & Jaringan', () {
-                  setState(() => _selectedDepartment = 'Transmisi & Jaringan');
-                }),
-              ],
+              children: _departments.map((dept) {
+                final label = dept == 'all' ? 'Semua Bidang' : dept;
+                final isSelected = _selectedDepartment == dept;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _buildFilterChip(label, isSelected, () {
+                    setState(() => _selectedDepartment = dept);
+                  }),
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(height: 16),
@@ -398,7 +388,7 @@ class _AdminEmployeeOperationalScreenState
           ),
           SizedBox(height: 4),
           Text(
-            'Coba ubah kata kunci atau filter divisi Anda.',
+            'Coba ubah kata kunci atau filter bidang Anda.',
             style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
           ),
         ],
@@ -410,9 +400,13 @@ class _AdminEmployeeOperationalScreenState
       BuildContext context, UserModel emp, EmployeeManagementProvider empProv) {
     final nameCtrl = TextEditingController(text: emp.name);
     final phoneCtrl = TextEditingController(text: emp.phone);
-    String selectedDept = emp.department;
+    String selectedDept = BidangData.normalizeBidang(emp.department);
+    String selectedSeksi = BidangData.normalizeSeksi(selectedDept, emp.position);
     String selectedStatusPegawai = emp.statusPegawai;
-    String selectedOffice = emp.officeId;
+    final offices = context.read<SystemSettingsProvider>().geofencing.offices;
+    String selectedOffice = offices.any((o) => o.id == emp.officeId)
+        ? emp.officeId
+        : (offices.isNotEmpty ? offices.first.id : 'hq');
 
     showDialog(
       context: context,
@@ -438,19 +432,62 @@ class _AdminEmployeeOperationalScreenState
                       decoration: const InputDecoration(labelText: 'Nomor WhatsApp / HP'),
                     ),
                     const SizedBox(height: 12),
+                    // Dropdown Bidang
                     DropdownButtonFormField<String>(
-                      value: _departments.contains(selectedDept) ? selectedDept : 'Operasional Lapangan',
-                      decoration: const InputDecoration(labelText: 'Divisi Penempatan'),
-                      items: _departments.where((d) => d != 'all').map((d) {
-                        return DropdownMenuItem(value: d, child: Text(d));
+                      initialValue: BidangData.allBidang.contains(selectedDept)
+                          ? selectedDept
+                          : BidangData.allBidang.first,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Bidang'),
+                      items: BidangData.allBidang.map((d) {
+                        return DropdownMenuItem(
+                          value: d,
+                          child: Text(
+                            d,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
                       }).toList(),
                       onChanged: (val) {
-                        if (val != null) setDialogState(() => selectedDept = val);
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedDept = val;
+                            selectedSeksi = BidangData.getSeksiForBidang(val).first;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    // Dropdown Seksi Bidang (Terintegrasi)
+                    DropdownButtonFormField<String>(
+                      key: ValueKey('admin_edit_seksi_$selectedDept'),
+                      initialValue: BidangData.getSeksiForBidang(selectedDept).contains(selectedSeksi)
+                          ? selectedSeksi
+                          : BidangData.getSeksiForBidang(selectedDept).first,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Seksi Bidang'),
+                      items: BidangData.getSeksiForBidang(selectedDept).map((s) {
+                        return DropdownMenuItem(
+                          value: s,
+                          child: Text(
+                            s,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedSeksi = val);
+                        }
                       },
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: selectedStatusPegawai,
+                      initialValue: selectedStatusPegawai,
                       decoration: const InputDecoration(labelText: 'Status Kerja'),
                       items: const [
                         DropdownMenuItem(value: 'Karyawan Tetap', child: Text('Karyawan Tetap')),
@@ -463,13 +500,20 @@ class _AdminEmployeeOperationalScreenState
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: selectedOffice,
+                      initialValue: selectedOffice,
+                      isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Kantor / Cabang'),
-                      items: const [
-                        DropdownMenuItem(value: 'hq', child: Text('Kantor Pusat Tanjung Pinang')),
-                        DropdownMenuItem(value: 'ipa_sei_pulai', child: Text('IPA Sei Pulai')),
-                        DropdownMenuItem(value: 'bintan_center', child: Text('Unit Bintan Centre')),
-                      ],
+                      items: offices.map((o) {
+                        return DropdownMenuItem<String>(
+                          value: o.id,
+                          child: Text(
+                            '${o.name} (${o.officeTypeLabel})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }).toList(),
                       onChanged: (val) {
                         if (val != null) setDialogState(() => selectedOffice = val);
                       },
@@ -484,20 +528,19 @@ class _AdminEmployeeOperationalScreenState
                 ),
                 FilledButton(
                   onPressed: () {
-                    String officeName = 'Kantor Pusat Tirtafield Tanjung Pinang';
-                    if (selectedOffice == 'ipa_sei_pulai') {
-                      officeName = 'Instalasi Pengolahan Air (IPA) Sei Pulai';
-                    } else if (selectedOffice == 'bintan_center') {
-                      officeName = 'Unit Pelayanan Bintan Centre';
-                    }
+                    final chosenOffice = offices.firstWhere(
+                      (o) => o.id == selectedOffice,
+                      orElse: () => offices.first,
+                    );
 
                     final updated = emp.copyWith(
                       name: nameCtrl.text.trim(),
                       phone: phoneCtrl.text.trim(),
                       department: selectedDept,
+                      position: selectedSeksi,
                       statusPegawai: selectedStatusPegawai,
-                      officeId: selectedOffice,
-                      officeName: officeName,
+                      officeId: chosenOffice.id,
+                      officeName: chosenOffice.name,
                     );
 
                     empProv.updateEmployeeData(updated);
@@ -523,8 +566,10 @@ class _AdminEmployeeOperationalScreenState
     final nipCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
-    String selectedDept = 'Operasional Lapangan';
-    String selectedOffice = 'hq';
+    String selectedDept = BidangData.mainOperationalBidang.first;
+    String selectedSeksi = BidangData.getSeksiForBidang(selectedDept).first;
+    final offices = context.read<SystemSettingsProvider>().geofencing.offices;
+    String selectedOffice = offices.isNotEmpty ? offices.first.id : 'hq';
 
     showDialog(
       context: context,
@@ -542,7 +587,7 @@ class _AdminEmployeeOperationalScreenState
                   children: [
                     TextField(
                       controller: nipCtrl,
-                      decoration: const InputDecoration(labelText: 'NIK / NIP Pegawai'),
+                      decoration: const InputDecoration(labelText: 'NIK'),
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -555,25 +600,73 @@ class _AdminEmployeeOperationalScreenState
                       decoration: const InputDecoration(labelText: 'No WhatsApp / Telepon'),
                     ),
                     const SizedBox(height: 12),
+                    // Dropdown Bidang
                     DropdownButtonFormField<String>(
-                      value: selectedDept,
-                      decoration: const InputDecoration(labelText: 'Divisi Operasional'),
-                      items: _departments.where((d) => d != 'all').map((d) {
-                        return DropdownMenuItem(value: d, child: Text(d));
+                      initialValue: selectedDept,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Bidang'),
+                      items: BidangData.allBidang.map((d) {
+                        return DropdownMenuItem(
+                          value: d,
+                          child: Text(
+                            d,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
                       }).toList(),
                       onChanged: (val) {
-                        if (val != null) setDialogState(() => selectedDept = val);
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedDept = val;
+                            selectedSeksi = BidangData.getSeksiForBidang(val).first;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    // Dropdown Seksi Bidang (Terintegrasi)
+                    DropdownButtonFormField<String>(
+                      key: ValueKey('admin_add_seksi_$selectedDept'),
+                      initialValue: BidangData.getSeksiForBidang(selectedDept).contains(selectedSeksi)
+                          ? selectedSeksi
+                          : BidangData.getSeksiForBidang(selectedDept).first,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Seksi Bidang'),
+                      items: BidangData.getSeksiForBidang(selectedDept).map((s) {
+                        return DropdownMenuItem(
+                          value: s,
+                          child: Text(
+                            s,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedSeksi = val);
+                        }
                       },
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: selectedOffice,
+                      initialValue: selectedOffice,
+                      isExpanded: true,
                       decoration: const InputDecoration(labelText: 'Penempatan Kantor Cabang'),
-                      items: const [
-                        DropdownMenuItem(value: 'hq', child: Text('Kantor Pusat Tanjung Pinang')),
-                        DropdownMenuItem(value: 'ipa_sei_pulai', child: Text('IPA Sei Pulai')),
-                        DropdownMenuItem(value: 'bintan_center', child: Text('Unit Bintan Centre')),
-                      ],
+                      items: offices.map((o) {
+                        return DropdownMenuItem<String>(
+                          value: o.id,
+                          child: Text(
+                            '${o.name} (${o.officeTypeLabel})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        );
+                      }).toList(),
                       onChanged: (val) {
                         if (val != null) setDialogState(() => selectedOffice = val);
                       },
@@ -592,12 +685,10 @@ class _AdminEmployeeOperationalScreenState
                       return;
                     }
 
-                    String officeName = 'Kantor Pusat Tirtafield Tanjung Pinang';
-                    if (selectedOffice == 'ipa_sei_pulai') {
-                      officeName = 'Instalasi Pengolahan Air (IPA) Sei Pulai';
-                    } else if (selectedOffice == 'bintan_center') {
-                      officeName = 'Unit Pelayanan Bintan Centre';
-                    }
+                    final chosenOffice = offices.firstWhere(
+                      (o) => o.id == selectedOffice,
+                      orElse: () => offices.first,
+                    );
 
                     empProv.addEmployee(
                       nip: nipCtrl.text.trim(),
@@ -605,9 +696,9 @@ class _AdminEmployeeOperationalScreenState
                       phone: phoneCtrl.text.trim().isEmpty ? '081234567890' : phoneCtrl.text.trim(),
                       role: UserRole.karyawan,
                       department: selectedDept,
-                      position: 'Staff Lapangan Operasional',
-                      officeId: selectedOffice,
-                      officeName: officeName,
+                      position: selectedSeksi,
+                      officeId: chosenOffice.id,
+                      officeName: chosenOffice.name,
                       statusPegawai: 'Karyawan Tetap',
                     );
                     Navigator.pop(ctx);

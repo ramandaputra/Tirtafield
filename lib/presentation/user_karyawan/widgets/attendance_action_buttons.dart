@@ -281,7 +281,7 @@ class AttendanceActionButtons extends StatelessWidget {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Lokasi: Kantor Pusat Tirtafield (Radius: OK)',
+                        'Lokasi: Kantor Pusat PERUMDA Tirta Kepri (Radius: OK)',
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                       ),
                     ),

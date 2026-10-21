@@ -625,7 +625,7 @@ class _VerifikasiLokasiScreenState extends State<VerifikasiLokasiScreen>
         'Koordinat: ${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}<br>'
         'Akurasi: ${_locationResult?.formattedAccuracy ?? "12 m (Stabil)"}';
 
-    final officeName = _targetOffice?.name ?? _locationResult?.targetOfficeName ?? 'Kantor Tirtafield';
+    final officeName = _targetOffice?.name ?? _locationResult?.targetOfficeName ?? 'Kantor PERUMDA Tirta Kepri';
 
     String? allOfficesJson;
     try {

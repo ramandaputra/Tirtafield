@@ -31,8 +31,8 @@ class LocationResult {
     this.errorMessage,
     this.address =
         'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113 (Plus Code: WFC6+47)',
-    this.locationName = 'Kantor Tirtafield Tanjung Pinang',
-    this.targetOfficeName = 'Kantor Pusat Tirtafield (Kantor Utama)',
+    this.locationName = 'Kantor PERUMDA Tirta Kepri Tanjung Pinang',
+    this.targetOfficeName = 'Kantor Pusat PERUMDA Tirta Kepri Tanjung Pinang',
     this.targetOfficeType = 'Kantor Utama',
     this.allowedRadiusMeters = 150.0,
   });
@@ -67,7 +67,7 @@ class LocationService {
   static const double hqLatitude = 0.92031;
   static const double hqLongitude = 104.46069;
   static const double maxAllowedRadiusMeters = 150.0;
-  static const String hqLocationName = 'Kantor Tirtafield Tanjung Pinang';
+  static const String hqLocationName = 'Kantor PERUMDA Tirta Kepri Tanjung Pinang';
   static const String hqAddress =
       'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113 (Plus Code: WFC6+47)';
 

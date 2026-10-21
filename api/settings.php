@@ -16,35 +16,7 @@ $defaultSettings = [
     'geofencing' => [
         'strict_mode'   => true,
         'active_office_id' => 'hq',
-        'offices'       => [
-            [
-                'id'          => 'hq',
-                'name'        => 'Kantor Pusat Tirtafield Tanjung Pinang',
-                'address'     => 'Jl. Wisata Bahari No. 12, Tanjung Pinang Timur, Kepulauan Riau',
-                'latitude'    => 0.92031,
-                'longitude'   => 104.46069,
-                'radius'      => 50.0,
-                'is_primary'  => true,
-            ],
-            [
-                'id'          => 'bintan_center',
-                'name'        => 'Unit Pelayanan Bintan Centre',
-                'address'     => 'Komp. Bintan Centre Blok A No. 5-6, Tanjung Pinang',
-                'latitude'    => 0.92550,
-                'longitude'   => 104.47120,
-                'radius'      => 60.0,
-                'is_primary'  => false,
-            ],
-            [
-                'id'          => 'ipa_sei_pulai',
-                'name'        => 'Instalasi Pengolahan Air (IPA) Sei Pulai',
-                'address'     => 'Kawasan Waduk Sei Pulai, Bintan',
-                'latitude'    => 0.90810,
-                'longitude'   => 104.43250,
-                'radius'      => 100.0,
-                'is_primary'  => false,
-            ],
-        ],
+        'offices'       => []
     ]
 ];
 
@@ -55,6 +27,29 @@ if (!file_exists($settingsFile)) {
 }
 
 $currentSettings = json_decode(file_get_contents($settingsFile), true) ?: $defaultSettings;
+
+// Selalu sinkronkan daftar kantor dengan database tabel `offices`
+try {
+    $stmt = $pdo->query("SELECT * FROM offices WHERE is_active = 1 ORDER BY is_primary DESC, nama_kantor ASC");
+    $dbOffices = $stmt->fetchAll();
+    if (!empty($dbOffices)) {
+        $syncedOffices = [];
+        foreach ($dbOffices as $r) {
+            $syncedOffices[] = [
+                'id'         => $r['id'],
+                'name'       => $r['nama_kantor'],
+                'address'    => $r['alamat'],
+                'latitude'   => (float)$r['latitude'],
+                'longitude'  => (float)$r['longitude'],
+                'radius'     => (float)$r['radius'],
+                'is_primary' => (bool)$r['is_primary'],
+            ];
+        }
+        $currentSettings['geofencing']['offices'] = $syncedOffices;
+    }
+} catch (\Exception $e) {
+    // Fallback ke settings.json jika database terkendala
+}
 
 if ($action === 'get') {
     sendResponse(true, $currentSettings, 'Pengaturan sistem berhasil dimuat.');
@@ -70,6 +65,34 @@ if ($action === 'get') {
     if (!empty($input)) {
         $currentSettings['geofencing'] = array_merge($currentSettings['geofencing'], $input);
         file_put_contents($settingsFile, json_encode($currentSettings, JSON_PRETTY_PRINT));
+
+        // Sinkronkan kantor yang disimpan ke tabel `offices`
+        if (!empty($input['offices']) && is_array($input['offices'])) {
+            try {
+                $stmtUpsert = $pdo->prepare("
+                    INSERT INTO offices (id, nama_kantor, alamat, latitude, longitude, radius, is_primary, is_active)
+                    VALUES (:id, :nama, :alamat, :lat, :lng, :radius, :is_primary, 1)
+                    ON DUPLICATE KEY UPDATE 
+                        nama_kantor = VALUES(nama_kantor),
+                        alamat = VALUES(alamat),
+                        latitude = VALUES(latitude),
+                        longitude = VALUES(longitude),
+                        radius = VALUES(radius),
+                        is_primary = VALUES(is_primary)
+                ");
+                foreach ($input['offices'] as $off) {
+                    $stmtUpsert->execute([
+                        'id'         => $off['id'],
+                        'nama'       => $off['name'],
+                        'alamat'     => $off['address'] ?? '',
+                        'lat'        => (float)($off['latitude'] ?? 0),
+                        'lng'        => (float)($off['longitude'] ?? 0),
+                        'radius'     => (int)($off['radius'] ?? 100),
+                        'is_primary' => !empty($off['is_primary']) ? 1 : 0,
+                    ]);
+                }
+            } catch (\Exception $e) {}
+        }
     }
     sendResponse(true, $currentSettings['geofencing'], 'Pengaturan geofencing & lokasi kantor berhasil disimpan.');
 } else {

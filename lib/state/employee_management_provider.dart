@@ -25,7 +25,7 @@ enum EmployeeSortOption {
       case EmployeeSortOption.nipDesc:
         return 'NIK (Terbesar - Terkecil)';
       case EmployeeSortOption.department:
-        return 'Divisi & Departemen';
+        return 'Bidang';
       case EmployeeSortOption.role:
         return 'Peran & Hak Akses';
       case EmployeeSortOption.office:
@@ -44,7 +44,7 @@ enum EmployeeSortOption {
       case EmployeeSortOption.nipDesc:
         return 'NIK 9-0';
       case EmployeeSortOption.department:
-        return 'Divisi';
+        return 'Bidang';
       case EmployeeSortOption.role:
         return 'Peran';
       case EmployeeSortOption.office:
@@ -59,13 +59,13 @@ enum EmployeeSortOption {
       case EmployeeSortOption.nameDesc:
         return 'Urutan alfabet nama dari Z sampai A';
       case EmployeeSortOption.nipAsc:
-        return 'Nomor induk pegawai dari terkecil ke terbesar';
+        return 'Nomor induk kependudukan dari terkecil ke terbesar';
       case EmployeeSortOption.nipDesc:
-        return 'Nomor induk pegawai dari terbesar ke terkecil';
+        return 'Nomor induk kependudukan dari terbesar ke terkecil';
       case EmployeeSortOption.department:
-        return 'Dikelompokkan berdasarkan divisi kerja';
+        return 'Dikelompokkan berdasarkan bidang kerja';
       case EmployeeSortOption.role:
-        return 'Staff IT (Superadmin) → Direktur → Karyawan';
+        return 'Superadmin → Admin → Pengguna';
       case EmployeeSortOption.office:
         return 'Kantor Pusat (HQ) lalu kantor cabang';
     }
@@ -302,8 +302,8 @@ class EmployeeManagementProvider extends ChangeNotifier {
               email: item['email'].toString(),
               pin: item['pin']?.toString() ?? '123456',
               role: r,
-              department: item['department']?.toString() ?? 'Operasional Lapangan',
-              position: item['position']?.toString() ?? 'Staff Lapangan',
+              department: item['department']?.toString() ?? 'Bidang Hubungan Langganan',
+              position: item['position']?.toString() ?? 'Seksi Pembacaan Meter',
               phone: item['phone']?.toString() ?? '081234567890',
               statusPegawai: item['status']?.toString() ?? 'Karyawan Tetap',
               avatarUrl: item['avatar_url']?.toString(),
@@ -311,31 +311,11 @@ class EmployeeManagementProvider extends ChangeNotifier {
               officeId: item['office_id']?.toString() ?? item['officeId']?.toString() ?? 'hq',
               officeName: item['office_name']?.toString() ??
                   item['officeName']?.toString() ??
-                  'Kantor Pusat Tirtafield Tanjung Pinang',
+                  'Kantor Pusat PERUMDA Tirta Kepri Tanjung Pinang',
             );
           }).toList();
 
           if (loaded.isNotEmpty) {
-            // Pastikan Superadmin Pusimpel P242101 selalu ada di daftar
-            final hasSuperadmin = loaded.any((u) => u.nip == 'P242101');
-            if (!hasSuperadmin) {
-              final superadminMock = MockData.initialUsers.firstWhere(
-                (u) => u.nip == 'P242101',
-                orElse: () => const UserModel(
-                  id: '162',
-                  nip: 'P242101',
-                  name: 'Superadmin Pusimpel',
-                  email: 'superadmin.pusimpel@tirtafield.co.id',
-                  role: UserRole.staffIT,
-                  department: 'PUSIMPEL IT & System',
-                  position: 'Superadmin Pusimpel',
-                  officeId: 'hq',
-                  officeName: 'Kantor Pusat Tirtafield Tanjung Pinang',
-                ),
-              );
-              loaded.insert(0, superadminMock);
-            }
-
             _employees = loaded;
             _isLoading = false;
             notifyListeners();
@@ -398,7 +378,7 @@ class EmployeeManagementProvider extends ChangeNotifier {
 
       try {
         final uri = Uri.parse('${ApiConfig.employeesUrl}?action=update');
-        await http
+        final res = await http
             .post(
               uri,
               headers: {'Content-Type': 'application/json'},
@@ -415,6 +395,9 @@ class EmployeeManagementProvider extends ChangeNotifier {
               }),
             )
             .timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          await loadEmployees();
+        }
       } catch (_) {}
 
       return true;
@@ -432,7 +415,7 @@ class EmployeeManagementProvider extends ChangeNotifier {
     String pin = '123456',
     String statusPegawai = 'Karyawan Tetap',
     String officeId = 'hq',
-    String officeName = 'Kantor Pusat Tirtafield Tanjung Pinang',
+    String officeName = 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
   }) async {
     final newId = 'emp_${DateTime.now().millisecondsSinceEpoch}';
     final newEmp = UserModel(
@@ -455,7 +438,7 @@ class EmployeeManagementProvider extends ChangeNotifier {
 
     try {
       final uri = Uri.parse('${ApiConfig.employeesUrl}?action=add');
-      await http
+      final res = await http
           .post(
             uri,
             headers: {'Content-Type': 'application/json'},
@@ -472,6 +455,9 @@ class EmployeeManagementProvider extends ChangeNotifier {
             }),
           )
           .timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        await loadEmployees();
+      }
     } catch (_) {}
 
     return true;

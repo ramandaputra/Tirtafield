@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../state/system_settings_provider.dart';
 
 class RecapRowItem {
   final String nip;
@@ -112,61 +114,68 @@ class _AdminReportRecapScreenState extends State<AdminReportRecapScreen> {
 
 
         // Filter Bar (Period & Branch)
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Parameter Laporan Rekapitulasi',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        Builder(
+          builder: (context) {
+            final offices = context.watch<SystemSettingsProvider>().geofencing.offices;
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.cardBorder),
               ),
-              const SizedBox(height: 8),
-              Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedPeriod,
-                      decoration: const InputDecoration(
-                        labelText: 'Periode Waktu',
-                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      ),
-                      items: _periods.map((p) {
-                        return DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 11.5)));
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedPeriod = val);
-                      },
-                    ),
+                  const Text(
+                    'Parameter Laporan Rekapitulasi',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedBranch,
-                      decoration: const InputDecoration(
-                        labelText: 'Cabang / Unit',
-                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedPeriod,
+                          decoration: const InputDecoration(
+                            labelText: 'Periode Waktu',
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          items: _periods.map((p) {
+                            return DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 11.5)));
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedPeriod = val);
+                          },
+                        ),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'all', child: Text('Semua Cabang', style: TextStyle(fontSize: 11.5))),
-                        DropdownMenuItem(value: 'hq', child: Text('Kantor Pusat (HQ)', style: TextStyle(fontSize: 11.5))),
-                        DropdownMenuItem(value: 'ipa_sei_pulai', child: Text('IPA Sei Pulai', style: TextStyle(fontSize: 11.5))),
-                        DropdownMenuItem(value: 'bintan_center', child: Text('Bintan Centre', style: TextStyle(fontSize: 11.5))),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _selectedBranch = val);
-                      },
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedBranch,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Cabang / Unit',
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          items: [
+                            const DropdownMenuItem(value: 'all', child: Text('Semua Cabang', style: TextStyle(fontSize: 11.5))),
+                            ...offices.map((o) => DropdownMenuItem(
+                              value: o.id,
+                              child: Text(o.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5)),
+                            )),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedBranch = val);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            );
+          },
         ),
         const SizedBox(height: 16),
 

@@ -24,7 +24,7 @@ class ActivityLogProvider extends ChangeNotifier {
       ActivityLogItem(
         id: 'act_001',
         title: 'Penetapan Kantor Pusat sebagai Kantor Utama',
-        description: 'Kantor Pusat Tirtafield Tanjung Pinang berhasil ditetapkan sebagai titik acuan kantor utama multi-site geofencing.',
+        description: 'Kantor Pusat PERUMDA Tirta Kepri Tanjung Pinang berhasil ditetapkan sebagai titik acuan kantor utama multi-site geofencing.',
         timestamp: now.subtract(const Duration(minutes: 12)),
         actorName: 'Superadmin Pusimpel',
         actorRole: 'Superadmin IT',
@@ -33,7 +33,7 @@ class ActivityLogProvider extends ChangeNotifier {
         level: ActivityLevel.success,
         ipAddress: '192.168.1.15',
         deviceInfo: 'Chrome 122.0 (Windows 11)',
-        targetEntity: 'Kantor Pusat Tirtafield Tanjung Pinang',
+        targetEntity: 'Kantor Pusat PERUMDA Tirta Kepri Tanjung Pinang',
         metadata: {
           'action': 'set_primary_office',
           'office_id': 'hq',
@@ -140,7 +140,7 @@ class ActivityLogProvider extends ChangeNotifier {
       ActivityLogItem(
         id: 'act_007',
         title: 'Pembuatan Akun Pegawai Baru',
-        description: 'Pendaftaran akun karyawan lapangan baru atas nama Ahmad Fauzi (NIP: P005) pada Unit Pelayanan Sei Pulai.',
+        description: 'Pendaftaran akun karyawan lapangan baru atas nama Ahmad Fauzi (NIK: P005) pada Unit Pelayanan Sei Pulai.',
         timestamp: now.subtract(const Duration(hours: 6)),
         actorName: 'Superadmin Pusimpel',
         actorRole: 'Superadmin IT',
@@ -178,7 +178,7 @@ class ActivityLogProvider extends ChangeNotifier {
       ActivityLogItem(
         id: 'act_009',
         title: 'Autentikasi Sesi Login Superadmin IT',
-        description: 'Sesi login berhasil diverifikasi melalui kredensial NIP P242101 dari jaringan lokal intranet kantor.',
+        description: 'Sesi login berhasil diverifikasi melalui kredensial NIK P242101 dari jaringan lokal intranet kantor.',
         timestamp: now.subtract(const Duration(hours: 9, minutes: 40)),
         actorName: 'Superadmin Pusimpel',
         actorRole: 'Superadmin IT',
@@ -189,7 +189,7 @@ class ActivityLogProvider extends ChangeNotifier {
         deviceInfo: 'Chrome 122.0 (Windows 11)',
         targetEntity: 'Autentikasi Dashboard IT',
         metadata: {
-          'auth_method': 'NIP & Password',
+          'auth_method': 'NIK & PIN',
           'session_token': 'Bearer eyJhbGciOi...',
         },
       ),
@@ -366,7 +366,7 @@ class ActivityLogProvider extends ChangeNotifier {
 
   String exportToCsv() {
     final buffer = StringBuffer();
-    buffer.writeln('ID,Waktu,Aktor,Role,NIP,Kategori,Tingkat,Judul,Deskripsi,Target,IP Address,Perangkat');
+    buffer.writeln('ID,Waktu,Aktor,Role,NIK,Kategori,Tingkat,Judul,Deskripsi,Target,IP Address,Perangkat');
     for (final log in filteredLogs) {
       final line = [
         '"${log.id}"',

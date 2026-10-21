@@ -276,7 +276,7 @@ class _SuperadminActivityLogScreenState
         controller: _searchController,
         onChanged: (val) => logProv.setSearchQuery(val),
         decoration: InputDecoration(
-          hintText: 'Cari aksi, nama aktor, NIP, atau objek...',
+          hintText: 'Cari aksi, nama aktor, NIK, atau objek...',
           hintStyle: const TextStyle(
             fontSize: 12,
             color: AppColors.onSurfaceVariant,
@@ -948,7 +948,7 @@ class _SuperadminActivityLogScreenState
                 _buildDetailRow('ID Log', log.id, isMonospace: true),
                 _buildDetailRow('Waktu Eksekusi', '${log.formattedDate} • ${log.formattedTime}'),
                 _buildDetailRow('Aktor / Pelaksana', '${log.actorName} (${log.actorRole})'),
-                _buildDetailRow('NIP Aktor', log.actorNip),
+                _buildDetailRow('NIK Aktor', log.actorNip),
                 if (log.targetEntity != null)
                   _buildDetailRow('Target Objek', log.targetEntity!),
                 if (log.ipAddress != null)

@@ -27,12 +27,12 @@ class BuktiPresensiBerhasilScreen extends StatefulWidget {
     super.key,
     this.slotType = AttendanceSlotType.masuk,
     this.slotTitle = 'Presensi Masuk',
-    this.projectLocation = 'Kantor Tirtafield Tanjung Pinang',
+    this.projectLocation = 'Kantor PERUMDA Tirta Kepri Tanjung Pinang',
     this.projectAddress =
         'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113',
     this.distanceHq = '8.5 km',
     this.isWithinRadius = false,
-    this.targetOfficeName = 'Kantor Pusat Tirtafield (Kantor Utama)',
+    this.targetOfficeName = 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
     this.targetOfficeType = 'Kantor Utama',
     this.capturedDateTime,
     this.photoUrl,
@@ -608,13 +608,16 @@ class _BuktiPresensiBerhasilScreenState extends State<BuktiPresensiBerhasilScree
                             color: AppColors.secondary,
                           ),
                           SizedBox(width: 4),
-                          Text(
-                            'Penugasan Lapangan',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.secondary,
-                              fontFamily: 'Inter',
+                          Flexible(
+                            child: Text(
+                              'Penugasan Lapangan',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.secondary,
+                                fontFamily: 'Inter',
+                              ),
                             ),
                           ),
                         ],

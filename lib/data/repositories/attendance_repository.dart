@@ -6,6 +6,7 @@ abstract class AttendanceRepository {
   Future<DailyAttendanceRecord> recordSlot({
     required String userId,
     required String userName,
+    String? userNip,
     required AttendanceSlotType slotType,
     String? location,
     String? notes,
@@ -49,6 +50,7 @@ class MockAttendanceRepository implements AttendanceRepository {
   Future<DailyAttendanceRecord> recordSlot({
     required String userId,
     required String userName,
+    String? userNip,
     required AttendanceSlotType slotType,
     String? location,
     String? notes,
@@ -63,7 +65,7 @@ class MockAttendanceRepository implements AttendanceRepository {
     final slotItem = AttendanceSlotItem(
       type: slotType,
       recordedTime: DateTime.now(),
-      location: location ?? 'Kantor Pusat Tirtafield (GPS Verified)',
+      location: location ?? 'Kantor Pusat PERUMDA Tirta Kepri (GPS Verified)',
       notes: notes,
     );
 

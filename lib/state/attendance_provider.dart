@@ -50,6 +50,7 @@ class AttendanceProvider extends ChangeNotifier {
       _todayRecord = await _repository.recordSlot(
         userId: user.id,
         userName: user.name,
+        userNip: user.nip,
         slotType: slotType,
         location: location,
         notes: notes,

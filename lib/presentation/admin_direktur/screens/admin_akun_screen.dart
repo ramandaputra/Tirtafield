@@ -19,8 +19,7 @@ class AdminAkunScreen extends StatefulWidget {
   State<AdminAkunScreen> createState() => _AdminAkunScreenState();
 }
 
-class _AdminAkunScreenState extends State<AdminAkunScreen>
-    with SingleTickerProviderStateMixin {
+class _AdminAkunScreenState extends State<AdminAkunScreen> {
   late TextEditingController _nameController;
   late TextEditingController _divisionController;
   late TextEditingController _positionController;
@@ -28,9 +27,6 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
 
   bool _presenceAlertsEnabled = true;
   bool _approvalAlertsEnabled = true;
-
-  late final AnimationController _pulseController;
-  late final Animation<double> _pulseAnimation;
 
   static const String _defaultAdminAvatar =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuAY_9kE1y44LkWkF_5c4gS_T9uF6N9qM4o8k_2_wXz7qA';
@@ -46,15 +42,6 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
     _positionController = TextEditingController(text: user.position);
     _phoneController = TextEditingController(text: user.phone);
     _lastSyncedUser = user;
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.25).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
   }
 
   @override
@@ -80,7 +67,6 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
     _divisionController.dispose();
     _positionController.dispose();
     _phoneController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -897,30 +883,16 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                user.name.isNotEmpty
-                                    ? user.name
-                                    : 'Abdul Kholik, S.T.',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.onSurface,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            const Icon(
-                              Icons.verified_rounded,
-                              color: AppColors.roleDirektur,
-                              size: 18,
-                            ),
-                          ],
+                        Text(
+                          user.name.isNotEmpty
+                              ? user.name
+                              : 'Abdul Kholik, S.T.',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                            fontFamily: 'Inter',
+                          ),
                         ),
                         const SizedBox(height: 3),
                         RichText(
@@ -951,58 +923,6 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
                             fontSize: 12,
                             color: AppColors.onSurfaceVariant,
                             fontFamily: 'Inter',
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-
-                        // Pulsing status badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.tertiaryContainer.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColors.tertiaryContainer.withValues(alpha: 0.25),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AnimatedBuilder(
-                                animation: _pulseAnimation,
-                                builder: (context, child) {
-                                  return Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.tertiaryContainer,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.tertiaryContainer.withValues(
-                                            alpha: _pulseAnimation.value > 1.0 ? 0.5 : 0.1,
-                                          ),
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Admin Direktur (Aktif)',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.tertiaryContainer,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                            ],
                           ),
                         ),
                       ],
@@ -1038,43 +958,16 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text(
-                  'Informasi Kepegawaian Admin',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Akses Direktur',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.roleDirektur,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            ],
+          const Text(
+            'Informasi Kepegawaian Admin',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+              fontFamily: 'Inter',
+            ),
           ),
           const SizedBox(height: 14),
-
 
           // Field 1: Nama Lengkap
           _buildFieldRow(
@@ -1084,19 +977,131 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
           ),
           const SizedBox(height: 14),
 
-          // Field 2: Divisi Penempatan
-          _buildFieldRow(
-            label: 'Divisi Penempatan',
-            controller: _divisionController,
-            prefixIcon: Icons.business_outlined,
+          // Field 2: Bidang (Terkunci - Hanya Admin yang dapat merubah)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bidang',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _divisionController,
+                readOnly: true,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.onSurface.withValues(alpha: 0.8),
+                  fontFamily: 'Inter',
+                ),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(
+                    Icons.business_outlined,
+                    size: 20,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                  suffixIcon: const Tooltip(
+                    message: 'Hanya admin yang dapat merubah',
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      size: 18,
+                      color: AppColors.outline,
+                    ),
+                  ),
+                  helperText: 'Hanya admin yang dapat merubah',
+                  helperStyle: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.onSurfaceVariant,
+                    fontFamily: 'Inter',
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
 
-          // Field 3: Jabatan Resmi
-          _buildFieldRow(
-            label: 'Jabatan Resmi',
-            controller: _positionController,
-            prefixIcon: Icons.admin_panel_settings_outlined,
+          // Field 3: Seksi Bidang (Terkunci - Hanya Admin yang dapat merubah)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Seksi Bidang',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _positionController,
+                readOnly: true,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.onSurface.withValues(alpha: 0.8),
+                  fontFamily: 'Inter',
+                ),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(
+                    Icons.admin_panel_settings_outlined,
+                    size: 20,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                  suffixIcon: const Tooltip(
+                    message: 'Hanya admin yang dapat merubah',
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      size: 18,
+                      color: AppColors.outline,
+                    ),
+                  ),
+                  helperText: 'Hanya admin yang dapat merubah',
+                  helperStyle: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.onSurfaceVariant,
+                    fontFamily: 'Inter',
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
 
@@ -1110,39 +1115,16 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
           const SizedBox(height: 14),
 
           // Field 5: Kantor Penempatan (Titik Acuan)
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Kantor Penempatan (Acuan Radius Presensi)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Terkunci',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurfaceVariant,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            ],
+          const Text(
+            'Kantor Penempatan (Acuan Radius Presensi)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurface,
+              fontFamily: 'Inter',
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Container(
@@ -1169,7 +1151,7 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
                       Text(
                         user.officeName.isNotEmpty
                             ? user.officeName
-                            : 'Kantor Pusat Tirtafield Tanjung Pinang',
+                            : 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
                         style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
@@ -1279,39 +1261,16 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
-                  fontFamily: 'Inter',
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3E8FF),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'Dapat Diedit',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.secondary,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-          ],
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.onSurface,
+            fontFamily: 'Inter',
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 6),
         TextFormField(
@@ -1328,11 +1287,6 @@ class _AdminAkunScreenState extends State<AdminAkunScreen>
               prefixIcon,
               size: 20,
               color: AppColors.onSurfaceVariant,
-            ),
-            suffixIcon: const Icon(
-              Icons.edit_rounded,
-              size: 18,
-              color: AppColors.secondary,
             ),
             filled: true,
             fillColor: AppColors.background,

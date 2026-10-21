@@ -8,6 +8,7 @@ import '../../../state/auth_provider.dart';
 import '../../../state/employee_management_provider.dart';
 import '../../../state/realtime_monitoring_provider.dart';
 import '../../../state/system_settings_provider.dart';
+import '../../../core/widgets/dashboard_header_banner.dart';
 import 'superadmin_activity_log_screen.dart';
 import 'superadmin_employee_screen.dart';
 import 'superadmin_monitoring_screen.dart';
@@ -88,7 +89,7 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.roleStaffIT,
+                    color: AppColors.surfaceContainerHigh,
                     width: 2,
                   ),
                 ),
@@ -120,34 +121,24 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
               ),
             ],
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        user.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.verified_rounded,
-                      color: AppColors.roleStaffIT,
-                      size: 15,
-                    ),
-                  ],
+                Text(
+                  user.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                    fontFamily: 'Inter',
+                  ),
                 ),
+                const SizedBox(height: 1),
                 Text(
                   '${user.nip} • ${user.position}',
                   maxLines: 1,
@@ -163,6 +154,46 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
           ),
         ],
       ),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: Stack(
+            children: [
+              IconButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Tidak ada notifikasi baru hari ini.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.onSurfaceVariant,
+                  size: 24,
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.surface,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -206,10 +237,8 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
   Widget _buildHomeMonitoringPortal() {
     final empProv = context.watch<EmployeeManagementProvider>();
     final approvalProv = context.watch<ApprovalProvider>();
-    final settingsProv = context.watch<SystemSettingsProvider>();
     final logProv = context.watch<ActivityLogProvider>();
     final pendingCount = approvalProv.pendingApprovals.length;
-    final officeCount = settingsProv.geofencing.offices.length;
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -220,11 +249,19 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. WELCOME BANNER & LIVE SYSTEM PULSE
-              _buildSuperadminHeroBanner(
-                totalEmp: empProv.totalEmployees,
-                pendingApprovals: pendingCount,
-                officeCount: officeCount,
+              // 0. HEADER BANNER KORPORAT TIRTA KEPRI (ASSETS/IMAGES/APP.JPG)
+              const DashboardHeaderBanner(
+                roleTitle: 'Aplikasi Presensi Lapangan',
+                roleBadgeColor: AppColors.roleStaffIT,
+              ),
+              const SizedBox(height: 14),
+
+              // 1. RINGKASAN OPERASIONAL & PERSETUJUAN (IDENTIK DENGAN DASHBOARD ADMIN)
+              _buildMainStatisticsBento(
+                totalKaryawanLapangan: empProv.totalEmployees,
+                menungguPersetujuan: pendingCount,
+                telahDisetujui: approvalProv.allApprovals.where((a) => a.isApproved).length,
+                onGoToApprovals: () => setState(() => _selectedTabIndex = 0),
               ),
               const SizedBox(height: 14),
 
@@ -245,73 +282,15 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
               const SizedBox(height: 16),
 
               // 3. MONITORING PRESENSI REALTIME FEED
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Persetujuan & Riwayat Presensi Lapangan',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        context.read<RealtimeMonitoringProvider>().loadRealtimeAttendance();
-                        context.read<ApprovalProvider>().loadAllApprovals();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Row(
-                              children: [
-                                Icon(Icons.sync_rounded, color: Colors.white, size: 18),
-                                SizedBox(width: 8),
-                                Text('Data persetujuan berhasil diperbarui.'),
-                              ],
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: AppColors.secondary,
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.secondary.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.sync_rounded, size: 14, color: AppColors.secondary),
-                            SizedBox(width: 4),
-                            Text(
-                              'Segarkan',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.secondary,
-                                fontFamily: 'Inter',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              const Text(
+                'Persetujuan & Riwayat Presensi Lapangan',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                ),
               ),
               const SizedBox(height: 8),
 
@@ -324,22 +303,92 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
     );
   }
 
-  Widget _buildSuperadminHeroBanner({
-    required int totalEmp,
-    required int pendingApprovals,
-    required int officeCount,
+  // 1. STATISTIK UTAMA (IDENTIK DENGAN DASHBOARD ADMIN) - RINGKASAN OPERASIONAL & PERSETUJUAN
+  Widget _buildMainStatisticsBento({
+    required int totalKaryawanLapangan,
+    required int menungguPersetujuan,
+    required int telahDisetujui,
+    VoidCallback? onGoToApprovals,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ringkasan Operasional & Persetujuan',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Inter',
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            // CARD 1: Total Karyawan Lapangan
+            Expanded(
+              child: _buildStatCard(
+                label: 'Total Pegawai',
+                value: '$totalKaryawanLapangan',
+                icon: Icons.engineering_outlined,
+                accentColor: AppColors.roleStaffIT,
+                onTap: () => setState(() => _selectedTabIndex = 2),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // CARD 2: Menunggu Persetujuan
+            Expanded(
+              child: _buildStatCard(
+                label: 'Persetujuan',
+                value: '$menungguPersetujuan',
+                icon: Icons.pending_actions_rounded,
+                accentColor: AppColors.warning,
+                onTap: onGoToApprovals,
+                showActionBadge: menungguPersetujuan > 0,
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // CARD 3: Telah Disetujui
+            Expanded(
+              child: _buildStatCard(
+                label: 'Disetujui',
+                value: '$telahDisetujui',
+                icon: Icons.verified_outlined,
+                accentColor: AppColors.success,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color accentColor,
+    VoidCallback? onTap,
+    bool showActionBadge = false,
+  }) {
+    final cardContent = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: showActionBadge
+              ? accentColor.withValues(alpha: 0.4)
+              : AppColors.outlineVariant.withValues(alpha: 0.35),
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF0F172A).withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -349,165 +398,66 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Expanded(
+              Flexible(
                 child: Text(
-                  'Pusat Kontrol Superadmin IT',
+                  value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 19,
                     fontWeight: FontWeight.w800,
+                    color: accentColor,
                     fontFamily: 'Inter',
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                decoration: BoxDecoration(
-                  color: AppColors.roleStaffIT.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppColors.roleStaffIT.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.shield_rounded, size: 12, color: AppColors.roleStaffIT),
-                    SizedBox(width: 4),
-                    Text(
-                      'Pusimpel Tier 1',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.roleStaffIT,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              Icon(icon, size: 16, color: accentColor),
             ],
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Sistem Presensi & Kepegawaian Tirta Kepri aktif terhubung ke database lokal.',
-            style: TextStyle(fontSize: 11.5, color: AppColors.onSurfaceVariant),
-          ),
-          const SizedBox(height: 14),
-
-          // Bento Mini Stats
+          const SizedBox(height: 5),
           Row(
             children: [
               Expanded(
-                child: _buildBannerStat(
-                  label: 'Total Pegawai',
-                  value: '$totalEmp',
-                  subtext: 'Terdaftar DB',
-                  color: AppColors.primary,
-                  icon: Icons.people_alt_rounded,
-                  onTap: () => setState(() => _selectedTabIndex = 2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSurface,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildBannerStat(
-                  label: 'Persetujuan',
-                  value: '$pendingApprovals',
-                  subtext: pendingApprovals > 0 ? 'Perlu Approval' : 'Semua Beres',
-                  color: pendingApprovals > 0 ? AppColors.breakOut : AppColors.success,
-                  icon: Icons.assignment_turned_in_rounded,
-                  onTap: () => setState(() => _selectedTabIndex = 0),
+              if (showActionBadge) ...[
+                const SizedBox(width: 4),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: AppColors.warning,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildBannerStat(
-                  label: 'Lokasi Kantor',
-                  value: '$officeCount Titik',
-                  subtext: 'Acuan Penempatan',
-                  color: AppColors.secondary,
-                  icon: Icons.apartment_rounded,
-                  onTap: () => setState(() {
-                    _operationalSubTabIndex = 1;
-                    _selectedTabIndex = 1;
-                  }),
-                ),
-              ),
+              ],
             ],
           ),
         ],
       ),
     );
-  }
 
-  Widget _buildBannerStat({
-    required String label,
-    required String value,
-    required String subtext,
-    required Color color,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
+    if (onTap == null) return cardContent;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.22)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: Text(
-                      value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: color,
-                        fontFamily: 'Inter',
-                      ),
-                    ),
-                  ),
-                  Icon(icon, size: 14, color: color),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Inter',
-                ),
-              ),
-              const SizedBox(height: 1),
-              Text(
-                subtext,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 9.5,
-                  color: AppColors.onSurfaceVariant,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ],
-          ),
-        ),
+        borderRadius: BorderRadius.circular(12),
+        child: cardContent,
       ),
     );
   }
@@ -536,7 +486,7 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
                 icon: Icons.badge_outlined,
                 color: AppColors.primary,
                 title: 'Data Pegawai',
-                subtitle: 'Direktori NIK & Divisi',
+                subtitle: 'Direktori NIK & Bidang',
                 onTap: () => setState(() => _selectedTabIndex = 2),
               ),
             ),
@@ -578,8 +528,6 @@ class _DashboardITScreenState extends State<DashboardITScreen> {
           color: AppColors.roleStaffIT,
           title: 'Log Aktivitas Sistem',
           subtitle: 'Audit trail, penempatan kantor, perubahan jam kerja & absensi',
-          badgeText: '$logCount Entri',
-          badgeColor: AppColors.roleStaffIT,
           onTap: () {
             Navigator.push(
               context,

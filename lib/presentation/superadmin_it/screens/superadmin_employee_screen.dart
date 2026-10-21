@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/role_badge.dart';
+import '../../../data/constants/bidang_data.dart';
 import '../../../data/models/user_model.dart';
 import '../../../state/auth_provider.dart';
 import '../../../state/employee_management_provider.dart';
@@ -30,6 +31,7 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
   @override
   void initState() {
     super.initState();
+    BidangData.syncFromDatabase();
     _subTabController = TabController(
       length: 2,
       vsync: this,
@@ -181,7 +183,7 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Distribusi Hak Akses Sistem',
+                      'Role',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 10),
@@ -189,28 +191,40 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
                       children: [
                         Expanded(
                           child: _buildRoleMiniStat(
-                            title: 'Staff IT',
+                            title: 'Superadmin',
                             count: '${empProv.totalStaffIT}',
                             color: AppColors.roleStaffIT,
                             icon: Icons.shield_rounded,
+                            isSelected: empProv.filterRole == UserRole.staffIT,
+                            onTap: () => empProv.setFilterRole(
+                              empProv.filterRole == UserRole.staffIT ? null : UserRole.staffIT,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: _buildRoleMiniStat(
-                            title: 'Direktur',
+                            title: 'Admin',
                             count: '${empProv.totalDirektur}',
                             color: AppColors.roleDirektur,
                             icon: Icons.admin_panel_settings_rounded,
+                            isSelected: empProv.filterRole == UserRole.direktur,
+                            onTap: () => empProv.setFilterRole(
+                              empProv.filterRole == UserRole.direktur ? null : UserRole.direktur,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: _buildRoleMiniStat(
-                            title: 'Karyawan',
+                            title: 'Pengguna',
                             count: '${empProv.totalKaryawan}',
                             color: AppColors.roleKaryawan,
                             icon: Icons.badge_rounded,
+                            isSelected: empProv.filterRole == UserRole.karyawan,
+                            onTap: () => empProv.setFilterRole(
+                              empProv.filterRole == UserRole.karyawan ? null : UserRole.karyawan,
+                            ),
                           ),
                         ),
                       ],
@@ -228,7 +242,7 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
                   empProv.setSearchQuery(v);
                 },
                 decoration: InputDecoration(
-                  hintText: 'Cari akun nama, NIK, atau divisi...',
+                  hintText: 'Cari akun nama, NIK, atau bidang...',
                   hintStyle: const TextStyle(fontSize: 12.5, color: AppColors.onSurfaceVariant),
                   prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.secondary),
                   suffixIcon: _roleSearchController.text.isNotEmpty
@@ -258,65 +272,219 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
 
               // Sort Toolbar Row
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          _buildSortButton(context, empProv),
-                          const SizedBox(width: 6),
-                          _buildSortDirectionToggle(empProv),
-                        ],
-                      ),
+                  _buildSortButton(context, empProv),
+                  Text(
+                    '${empProv.filteredEmployees.length} Akun',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _buildFilterSummaryText(empProv, _roleSearchController),
                 ],
               ),
               const SizedBox(height: 10),
 
-              // Role Filter Chips
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    _buildFilterChip(
-                      label: 'Semua Akun (${empProv.totalEmployees})',
-                      isSelected: empProv.filterRole == null,
-                      onTap: () => empProv.setFilterRole(null),
-                    ),
-                    const SizedBox(width: 6),
-                    _buildFilterChip(
-                      label: 'Staff IT (Superadmin)',
-                      isSelected: empProv.filterRole == UserRole.staffIT,
-                      color: AppColors.roleStaffIT,
-                      onTap: () => empProv.setFilterRole(
-                        empProv.filterRole == UserRole.staffIT ? null : UserRole.staffIT,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    _buildFilterChip(
-                      label: 'Direktur (Admin)',
-                      isSelected: empProv.filterRole == UserRole.direktur,
-                      color: AppColors.roleDirektur,
-                      onTap: () => empProv.setFilterRole(
-                        empProv.filterRole == UserRole.direktur ? null : UserRole.direktur,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    _buildFilterChip(
-                      label: 'Karyawan',
-                      isSelected: empProv.filterRole == UserRole.karyawan,
-                      color: AppColors.roleKaryawan,
-                      onTap: () => empProv.setFilterRole(
-                        empProv.filterRole == UserRole.karyawan ? null : UserRole.karyawan,
-                      ),
+              // Role Filter Dropdown (Semua Akun, Superadmin, Admin, Pengguna)
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
                     ),
                   ],
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<UserRole?>(
+                    value: empProv.filterRole,
+                    isExpanded: true,
+                    icon: const Padding(
+                      padding: EdgeInsets.only(right: 12),
+                      child: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.onSurfaceVariant,
+                        size: 20,
+                      ),
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    dropdownColor: AppColors.surfaceContainerLowest,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    items: [
+                      DropdownMenuItem<UserRole?>(
+                        value: null,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.groups_rounded,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Semua Akun',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurface,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${empProv.totalEmployees} Akun',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem<UserRole?>(
+                        value: UserRole.staffIT,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.shield_rounded,
+                              size: 16,
+                              color: AppColors.roleStaffIT,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Superadmin',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurface,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.roleStaffIT.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${empProv.totalStaffIT}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.roleStaffIT,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem<UserRole?>(
+                        value: UserRole.direktur,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.admin_panel_settings_rounded,
+                              size: 16,
+                              color: AppColors.roleDirektur,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Admin',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurface,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.roleDirektur.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${empProv.totalDirektur}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.roleDirektur,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem<UserRole?>(
+                        value: UserRole.karyawan,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.badge_rounded,
+                              size: 16,
+                              color: AppColors.roleKaryawan,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Pengguna',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurface,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.roleKaryawan.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${empProv.totalKaryawan}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.roleKaryawan,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (role) {
+                      empProv.setFilterRole(role);
+                    },
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -347,39 +515,57 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
     required String count,
     required Color color,
     required IconData icon,
+    VoidCallback? onTap,
+    bool isSelected = false,
   }) {
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: isSelected ? color.withValues(alpha: 0.16) : color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: isSelected ? color : color.withValues(alpha: 0.2),
+          width: isSelected ? 1.5 : 1,
+        ),
       ),
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                count,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                  fontFamily: 'Inter',
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  count,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    fontFamily: 'Inter',
+                  ),
                 ),
-              ),
-              Text(
-                title,
-                style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
-              ),
-            ],
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10, color: AppColors.onSurfaceVariant),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: card,
+      );
+    }
+    return card;
   }
 
   Widget _buildUserRoleCard(
@@ -476,31 +662,102 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
           const Divider(height: 1, color: Color(0xFFEAEDFF)),
           const SizedBox(height: 8),
 
-          // Actions Row
+          // Actions Row: Reset PIN & Ubah Role (Lebar Seimbang & Konsisten)
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton.icon(
-                onPressed: () => _showResetPinModal(context, user, empProv),
-                icon: const Icon(Icons.key_rounded, size: 14),
-                label: const Text('Reset PIN', style: TextStyle(fontSize: 11)),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.secondary,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  visualDensity: VisualDensity.compact,
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showResetPinModal(context, user, empProv),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD97706),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFD97706).withValues(alpha: 0.25),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.key_rounded,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              'Reset PIN',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 4),
-              ElevatedButton.icon(
-                onPressed: () => _showChangeRoleModal(context, user, empProv),
-                icon: const Icon(Icons.manage_accounts_rounded, size: 14),
-                label: const Text('Ubah Role', style: TextStyle(fontSize: 11)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showChangeRoleModal(context, user, empProv),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.secondary.withValues(alpha: 0.25),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.manage_accounts_rounded,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              'Ubah Role',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -527,40 +784,22 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header with Add Button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Header Direktori Kepegawaian
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Direktori Kepegawaian',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                        ),
-                        Text(
-                          'Total ${empProv.totalEmployees} Pegawai Terdaftar',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
+                  const Text(
+                    'Direktori Kepegawaian',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddEmployeeModal(context, empProv),
-                    icon: const Icon(Icons.person_add_rounded, size: 16),
-                    label: const Text('Tambah Pegawai'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Total ${empProv.totalEmployees} Pegawai Terdaftar',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -574,7 +813,7 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
                   empProv.setSearchQuery(v);
                 },
                 decoration: InputDecoration(
-                  hintText: 'Cari nama pegawai, NIK, divisi, kantor...',
+                  hintText: 'Cari nama pegawai, NIK, bidang, kantor...',
                   hintStyle: const TextStyle(fontSize: 12.5, color: AppColors.onSurfaceVariant),
                   prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.secondary),
                   suffixIcon: _employeeSearchController.text.isNotEmpty
@@ -602,63 +841,200 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
               ),
               const SizedBox(height: 10),
 
-              // Sort & Filter Toolbar
+              // Sort Toolbar
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          _buildSortButton(context, empProv),
-                          const SizedBox(width: 6),
-                          _buildSortDirectionToggle(empProv),
-                          const SizedBox(width: 6),
-                          _buildFilterSheetButton(context, empProv, settingsProv),
-                        ],
-                      ),
+                  _buildSortButton(context, empProv),
+                  Text(
+                    '${empProv.filteredEmployees.length} Pegawai',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _buildFilterSummaryText(empProv, _employeeSearchController),
                 ],
               ),
               const SizedBox(height: 10),
 
-              // Primary Office / Cabang Quick Chips
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    _buildFilterChip(
-                      label: 'Semua Cabang',
-                      isSelected: empProv.filterOfficeId == null || empProv.filterOfficeId!.isEmpty,
-                      onTap: () => empProv.setFilterOffice(null),
-                    ),
-                    ...settingsProv.geofencing.offices.map((office) {
-                      final isSel = empProv.filterOfficeId == office.id;
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 6),
-                        child: _buildFilterChip(
-                          label: office.name,
-                          isSelected: isSel,
-                          color: office.isPrimary ? AppColors.primary : AppColors.secondary,
-                          onTap: () => empProv.setFilterOffice(isSel ? null : office.id),
-                        ),
-                      );
-                    }),
-                    if (empProv.filterDepartment != null && empProv.filterDepartment!.isNotEmpty) ...[
-                      const SizedBox(width: 6),
-                      _buildActiveFilterDismissChip(
-                        label: 'Divisi: ${empProv.filterDepartment}',
-                        onDismiss: () => empProv.setFilterDepartment(null),
+              // Office Sort & Filter Dropdown
+              Builder(
+                builder: (context) {
+                  final officeDropdownValue = settingsProv.geofencing.offices
+                          .any((o) => o.id == empProv.filterOfficeId)
+                      ? empProv.filterOfficeId
+                      : null;
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.5),
                       ),
-                    ],
-                  ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        value: officeDropdownValue,
+                        isExpanded: true,
+                        icon: const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AppColors.onSurfaceVariant,
+                            size: 20,
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        dropdownColor: AppColors.surfaceContainerLowest,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                        items: [
+                          DropdownMenuItem<String?>(
+                            value: null,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.corporate_fare_rounded,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Semua Kantor',
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.onSurface,
+                                      fontFamily: 'Inter',
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '${empProv.totalEmployees} Pegawai',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                      fontFamily: 'Inter',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...settingsProv.geofencing.offices.map((office) {
+                            final empCount = empProv.employees
+                                .where((u) => u.officeId == office.id)
+                                .length;
+                            final color = office.isPrimary
+                                ? AppColors.primary
+                                : AppColors.secondary;
+                            return DropdownMenuItem<String?>(
+                              value: office.id,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    office.isPrimary
+                                        ? Icons.star_rounded
+                                        : Icons.store_mall_directory_rounded,
+                                    size: 16,
+                                    color: color,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      office.name,
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.onSurface,
+                                        fontFamily: 'Inter',
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      '$empCount Pegawai',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: color,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) => empProv.setFilterOffice(val),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+
+              // Tombol Tambah Pegawai (Dipindahkan ke bawah sort dropdown)
+              SizedBox(
+                height: 40,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showAddEmployeeModal(context, empProv),
+                  icon: const Icon(Icons.person_add_rounded, size: 18),
+                  label: const Text(
+                    'Tambah Pegawai Baru',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 1,
+                  ),
                 ),
               ),
+              if (empProv.filterDepartment != null &&
+                  empProv.filterDepartment!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildActiveFilterDismissChip(
+                    label: 'Bidang: ${empProv.filterDepartment}',
+                    onDismiss: () => empProv.setFilterDepartment(null),
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
 
               // Employee Directory Cards or Empty State
@@ -784,48 +1160,108 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  user.statusPegawai,
-                  style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppColors.success),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 10),
           const Divider(height: 1, color: Color(0xFFEAEDFF)),
           const SizedBox(height: 8),
 
-          // Action Buttons: Detail, Edit, Deactivate
+          // Actions Row: Detail & Ubah Data (Lebar Seimbang & Konsisten, Solid Color + Tulisan Putih)
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton.icon(
-                onPressed: () => _showEmployeeDetailSheet(context, user),
-                icon: const Icon(Icons.visibility_outlined, size: 14),
-                label: const Text('Detail', style: TextStyle(fontSize: 11)),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.onSurfaceVariant,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  visualDensity: VisualDensity.compact,
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showEmployeeDetailSheet(context, user),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D9488),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.visibility_rounded,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              'Detail',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 4),
-              OutlinedButton.icon(
-                onPressed: () => _showEditEmployeeModal(context, user, empProv),
-                icon: const Icon(Icons.edit_outlined, size: 14),
-                label: const Text('Ubah Data', style: TextStyle(fontSize: 11)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.secondary,
-                  side: const BorderSide(color: AppColors.secondary),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  visualDensity: VisualDensity.compact,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showEditEmployeeModal(context, user, empProv),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF7C3AED),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF7C3AED).withValues(alpha: 0.25),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.edit_rounded,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              'Ubah Data',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -895,150 +1331,6 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
     );
   }
 
-  Widget _buildSortDirectionToggle(EmployeeManagementProvider empProv) {
-    final isAsc = empProv.sortOption.isAscending;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => empProv.toggleSortDirection(),
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.45),
-            ),
-          ),
-          child: Icon(
-            isAsc ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-            size: 14,
-            color: AppColors.primary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterSheetButton(
-    BuildContext context,
-    EmployeeManagementProvider empProv,
-    SystemSettingsProvider settingsProv,
-  ) {
-    final filterCount = (empProv.filterOfficeId != null && empProv.filterOfficeId!.isNotEmpty ? 1 : 0) +
-        (empProv.filterDepartment != null && empProv.filterDepartment!.isNotEmpty ? 1 : 0) +
-        (empProv.filterRole != null ? 1 : 0);
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showFilterBottomSheet(context, empProv, settingsProv),
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6.5),
-          decoration: BoxDecoration(
-            color: filterCount > 0
-                ? AppColors.secondary.withValues(alpha: 0.1)
-                : AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: filterCount > 0
-                  ? AppColors.secondary.withValues(alpha: 0.45)
-                  : AppColors.outlineVariant.withValues(alpha: 0.45),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.tune_rounded,
-                size: 14,
-                color: filterCount > 0 ? AppColors.secondary : AppColors.onSurfaceVariant,
-              ),
-              const SizedBox(width: 5),
-              Text(
-                'Filter',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: filterCount > 0 ? FontWeight.w700 : FontWeight.w600,
-                  color: filterCount > 0 ? AppColors.secondary : AppColors.onSurface,
-                  fontFamily: 'Inter',
-                ),
-              ),
-              if (filterCount > 0) ...[
-                const SizedBox(width: 5),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '$filterCount',
-                    style: const TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterSummaryText(
-    EmployeeManagementProvider empProv,
-    TextEditingController controller,
-  ) {
-    if (empProv.hasActiveFilters) {
-      return GestureDetector(
-        onTap: () {
-          controller.clear();
-          setState(() {});
-          empProv.resetFilters();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.secondary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.restart_alt_rounded, size: 12, color: AppColors.secondary),
-              SizedBox(width: 3),
-              Text(
-                'Reset',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.secondary,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Text(
-      '${empProv.filteredEmployees.length} Pegawai',
-      style: const TextStyle(
-        fontSize: 11,
-        color: AppColors.onSurfaceVariant,
-        fontWeight: FontWeight.w600,
-        fontFamily: 'Inter',
-      ),
-    );
-  }
 
   Widget _buildActiveFilterDismissChip({
     required String label,
@@ -1118,7 +1410,7 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
           ),
           const SizedBox(height: 5),
           const Text(
-            'Kriteria pencarian, filter cabang, divisi, atau sortir tidak cocok dengan pegawai mana pun.',
+            'Kriteria pencarian, filter cabang, bidang, atau sortir tidak cocok dengan pegawai mana pun.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 11.5,
@@ -1331,327 +1623,6 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
     );
   }
 
-  void _showFilterBottomSheet(
-    BuildContext context,
-    EmployeeManagementProvider empProv,
-    SystemSettingsProvider settingsProv,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final offices = settingsProv.geofencing.offices;
-            final departments = empProv.departmentList;
-
-            return Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.85,
-              ),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Grab handle
-                    Center(
-                      child: Container(
-                        margin: const EdgeInsets.only(top: 10, bottom: 8),
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.outlineVariant.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-
-                    // Sheet Header
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Filter Lanjutan Pegawai',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    fontFamily: 'Inter',
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Saring pegawai berdasarkan kantor, divisi & peran',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: AppColors.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 20),
-                            onPressed: () => Navigator.pop(ctx),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Divider(height: 1, color: Color(0xFFEAEDFF)),
-
-                    // Scrollable Filter Sections
-                    Expanded(
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Section 1: Kantor Penempatan
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Kantor Penempatan',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: 'Inter',
-                                  ),
-                                ),
-                                if (empProv.filterOfficeId != null && empProv.filterOfficeId!.isNotEmpty)
-                                  GestureDetector(
-                                    onTap: () {
-                                      empProv.setFilterOffice(null);
-                                      setModalState(() {});
-                                    },
-                                    child: const Text(
-                                      'Reset',
-                                      style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _buildFilterChip(
-                                  label: 'Semua Cabang',
-                                  isSelected: empProv.filterOfficeId == null || empProv.filterOfficeId!.isEmpty,
-                                  onTap: () {
-                                    empProv.setFilterOffice(null);
-                                    setModalState(() {});
-                                  },
-                                ),
-                                ...offices.map((office) {
-                                  final isSel = empProv.filterOfficeId == office.id;
-                                  return _buildFilterChip(
-                                    label: office.name,
-                                    isSelected: isSel,
-                                    color: office.isPrimary ? AppColors.primary : AppColors.secondary,
-                                    onTap: () {
-                                      empProv.setFilterOffice(isSel ? null : office.id);
-                                      setModalState(() {});
-                                    },
-                                  );
-                                }),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Section 2: Divisi & Departemen
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Divisi & Departemen',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: 'Inter',
-                                  ),
-                                ),
-                                if (empProv.filterDepartment != null && empProv.filterDepartment!.isNotEmpty)
-                                  GestureDetector(
-                                    onTap: () {
-                                      empProv.setFilterDepartment(null);
-                                      setModalState(() {});
-                                    },
-                                    child: const Text(
-                                      'Reset',
-                                      style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _buildFilterChip(
-                                  label: 'Semua Divisi',
-                                  isSelected: empProv.filterDepartment == null || empProv.filterDepartment!.isEmpty,
-                                  onTap: () {
-                                    empProv.setFilterDepartment(null);
-                                    setModalState(() {});
-                                  },
-                                ),
-                                ...departments.map((dept) {
-                                  final isSel = empProv.filterDepartment == dept;
-                                  return _buildFilterChip(
-                                    label: dept,
-                                    isSelected: isSel,
-                                    onTap: () {
-                                      empProv.setFilterDepartment(isSel ? null : dept);
-                                      setModalState(() {});
-                                    },
-                                  );
-                                }),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Section 3: Peran & Akses Akun
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Peran & Hak Akses',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: 'Inter',
-                                  ),
-                                ),
-                                if (empProv.filterRole != null)
-                                  GestureDetector(
-                                    onTap: () {
-                                      empProv.setFilterRole(null);
-                                      setModalState(() {});
-                                    },
-                                    child: const Text(
-                                      'Reset',
-                                      style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _buildFilterChip(
-                                  label: 'Semua Peran',
-                                  isSelected: empProv.filterRole == null,
-                                  onTap: () {
-                                    empProv.setFilterRole(null);
-                                    setModalState(() {});
-                                  },
-                                ),
-                                _buildFilterChip(
-                                  label: 'Staff IT (Superadmin)',
-                                  isSelected: empProv.filterRole == UserRole.staffIT,
-                                  color: AppColors.roleStaffIT,
-                                  onTap: () {
-                                    empProv.setFilterRole(empProv.filterRole == UserRole.staffIT ? null : UserRole.staffIT);
-                                    setModalState(() {});
-                                  },
-                                ),
-                                _buildFilterChip(
-                                  label: 'Direktur (Admin)',
-                                  isSelected: empProv.filterRole == UserRole.direktur,
-                                  color: AppColors.roleDirektur,
-                                  onTap: () {
-                                    empProv.setFilterRole(empProv.filterRole == UserRole.direktur ? null : UserRole.direktur);
-                                    setModalState(() {});
-                                  },
-                                ),
-                                _buildFilterChip(
-                                  label: 'Karyawan',
-                                  isSelected: empProv.filterRole == UserRole.karyawan,
-                                  color: AppColors.roleKaryawan,
-                                  onTap: () {
-                                    empProv.setFilterRole(empProv.filterRole == UserRole.karyawan ? null : UserRole.karyawan);
-                                    setModalState(() {});
-                                  },
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const Divider(height: 1, color: Color(0xFFEAEDFF)),
-
-                    // Footer Buttons
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () {
-                                empProv.resetFilters();
-                                setModalState(() {});
-                              },
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.onSurfaceVariant,
-                                side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.6)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: const Text('Reset Filter'),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: Text('Terapkan (${empProv.filteredEmployees.length} Pegawai)'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   // ==========================================
   // MODALS & DIALOGS
   // ==========================================
@@ -1700,19 +1671,19 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // Option 1: Staff IT (Superadmin)
+                  // Option 1: Superadmin
                   _buildRoleOptionCard(
-                    title: 'Staff IT (Superadmin)',
-                    subtitle: 'Akses penuh manajemen user, jam kerja, lokasi kantor, dan audit',
+                    title: 'Superadmin',
+                    subtitle: 'Akses penuh manajemen user, jam kerja, lokasi kantor, dan audit sistem',
                     color: AppColors.roleStaffIT,
                     isSelected: selectedRole == UserRole.staffIT,
                     onTap: () => setModalState(() => selectedRole = UserRole.staffIT),
                   ),
                   const SizedBox(height: 8),
 
-                  // Option 2: Direktur (Admin)
+                  // Option 2: Admin
                   _buildRoleOptionCard(
-                    title: 'Direktur (Admin)',
+                    title: 'Admin',
                     subtitle: 'Akses dashboard eksekutif kehadiran & persetujuan presensi',
                     color: AppColors.roleDirektur,
                     isSelected: selectedRole == UserRole.direktur,
@@ -1720,10 +1691,10 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
                   ),
                   const SizedBox(height: 8),
 
-                  // Option 3: Karyawan (User)
+                  // Option 3: Pengguna
                   _buildRoleOptionCard(
-                    title: 'Karyawan (User Lapangan)',
-                    subtitle: 'Akses 4 tombol sesi presensi mandiri dan pengajuan persetujuan presensi',
+                    title: 'Pengguna',
+                    subtitle: 'Akses sesi presensi mandiri dan pengajuan persetujuan presensi',
                     color: AppColors.roleKaryawan,
                     isSelected: selectedRole == UserRole.karyawan,
                     onTap: () => setModalState(() => selectedRole = UserRole.karyawan),
@@ -1893,8 +1864,10 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
   ) {
     final nipCtrl = TextEditingController();
     final nameCtrl = TextEditingController();
-    final deptCtrl = TextEditingController(text: 'Operasional Lapangan');
-    final posCtrl = TextEditingController(text: 'Staff Lapangan');
+    String selectedBidang = BidangData.mainOperationalBidang.first;
+    String selectedSeksi = BidangData.getSeksiForBidang(selectedBidang).first;
+    final deptCtrl = TextEditingController(text: selectedBidang);
+    final posCtrl = TextEditingController(text: selectedSeksi);
     final phoneCtrl = TextEditingController();
     UserRole selectedRole = UserRole.karyawan;
     final settingsProv = context.read<SystemSettingsProvider>();
@@ -1904,166 +1877,289 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                16,
-                20,
-                MediaQuery.of(context).viewInsets.bottom + 20,
+        builder: (ctx, setModalState) {
+          final keyboardHeight = MediaQuery.of(ctx).viewInsets.bottom;
+          final screenHeight = MediaQuery.of(ctx).size.height;
+
+          return Center(
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: screenHeight * 0.88,
+                maxWidth: 520,
               ),
-              child: SingleChildScrollView(
+              margin: EdgeInsets.only(bottom: keyboardHeight),
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.outlineVariant,
-                          borderRadius: BorderRadius.circular(4),
+                    // 1. Header with Grab Handle & Close Button
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 12, 10),
+                      child: Column(
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 36,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: AppColors.outlineVariant.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.secondary.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.person_add_rounded,
+                                      size: 18,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Text(
+                                    'Tambah Pegawai Baru',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 20),
+                                onPressed: () => Navigator.pop(ctx),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+
+                    // 2. Scrollable Form Body
+                    Flexible(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: nipCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'NIK',
+                                hintText: 'Contoh: 2171012345678901',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: nameCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Nama Lengkap (dengan Gelar)',
+                                hintText: 'Contoh: Ahmad Fadilah, S.T.',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Dropdown Bidang
+                            DropdownButtonFormField<String>(
+                              initialValue: selectedBidang,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Bidang',
+                                prefixIcon: Icon(Icons.business_rounded, size: 20),
+                                border: OutlineInputBorder(),
+                              ),
+                              items: BidangData.allBidang.map((b) {
+                                return DropdownMenuItem<String>(
+                                  value: b,
+                                  child: Text(
+                                    b,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setModalState(() {
+                                    selectedBidang = val;
+                                    deptCtrl.text = val;
+                                    final listSeksi = BidangData.getSeksiForBidang(val);
+                                    selectedSeksi = listSeksi.first;
+                                    posCtrl.text = selectedSeksi;
+                                  });
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            // Dropdown Seksi Bidang (Terintegrasi)
+                            DropdownButtonFormField<String>(
+                              key: ValueKey('add_seksi_$selectedBidang'),
+                              initialValue: BidangData.getSeksiForBidang(selectedBidang).contains(selectedSeksi)
+                                  ? selectedSeksi
+                                  : BidangData.getSeksiForBidang(selectedBidang).first,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Seksi Bidang',
+                                prefixIcon: Icon(Icons.assignment_ind_rounded, size: 20),
+                                border: OutlineInputBorder(),
+                              ),
+                              items: BidangData.getSeksiForBidang(selectedBidang).map((s) {
+                                return DropdownMenuItem<String>(
+                                  value: s,
+                                  child: Text(
+                                    s,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setModalState(() {
+                                    selectedSeksi = val;
+                                    posCtrl.text = val;
+                                  });
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            // Dropdown Kantor Penempatan Cabang
+                            DropdownButtonFormField<String>(
+                              initialValue: offices.any((o) => o.id == selectedOfficeId)
+                                  ? selectedOfficeId
+                                  : (offices.isNotEmpty ? offices.first.id : null),
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Kantor Penempatan',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: offices.map((o) {
+                                return DropdownMenuItem<String>(
+                                  value: o.id,
+                                  child: Text(
+                                    '${o.name} (${o.officeTypeLabel})',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (v) {
+                                if (v != null) setModalState(() => selectedOfficeId = v);
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: phoneCtrl,
+                              keyboardType: TextInputType.phone,
+                              decoration: const InputDecoration(
+                                labelText: 'No. WhatsApp / HP',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<UserRole>(
+                              initialValue: selectedRole,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Peran Akun',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: UserRole.values.map((r) {
+                                return DropdownMenuItem(
+                                  value: r,
+                                  child: Text(r.displayName),
+                                );
+                              }).toList(),
+                              onChanged: (v) {
+                                if (v != null) setModalState(() => selectedRole = v);
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Tambah Pegawai Baru',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 14),
 
-                    TextField(
-                      controller: nipCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'NIP / NIK Karyawan',
-                        hintText: 'Contoh: P005 / PA005',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: nameCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Nama Lengkap (dengan Gelar)',
-                        hintText: 'Contoh: Ahmad Fadilah, S.T.',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: deptCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Divisi / Penempatan Unit Kerja',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: posCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Jabatan',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    // Dropdown Kantor Penempatan Cabang
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedOfficeId,
-                      decoration: const InputDecoration(
-                        labelText: 'Kantor Penempatan (Cabang)',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: offices.map((o) {
-                        return DropdownMenuItem<String>(
-                          value: o.id,
-                          child: Text(
-                            '${o.name} (${o.officeTypeLabel})',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13),
+                    // 3. Sticky Footer with Submit Button
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLowest,
+                        border: Border(
+                          top: BorderSide(
+                            color: AppColors.outlineVariant.withValues(alpha: 0.35),
                           ),
-                        );
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) setModalState(() => selectedOfficeId = v);
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: phoneCtrl,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'No. WhatsApp / HP',
-                        border: OutlineInputBorder(),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (nipCtrl.text.trim().isEmpty || nameCtrl.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('NIK dan Nama wajib diisi.')),
+                            );
+                            return;
+                          }
 
-                    DropdownButtonFormField<UserRole>(
-                      initialValue: selectedRole,
-                      decoration: const InputDecoration(
-                        labelText: 'Peran Akun',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: UserRole.values.map((r) {
-                        return DropdownMenuItem(value: r, child: Text(r.displayName));
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) setModalState(() => selectedRole = v);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    ElevatedButton(
-                      onPressed: () async {
-                        if (nipCtrl.text.trim().isEmpty || nameCtrl.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('NIP dan Nama wajib diisi.')),
+                          final chosenOffice = offices.firstWhere(
+                            (o) => o.id == selectedOfficeId,
+                            orElse: () => offices.first,
                           );
-                          return;
-                        }
 
-                        final chosenOffice = offices.firstWhere(
-                          (o) => o.id == selectedOfficeId,
-                          orElse: () => offices.first,
-                        );
-
-                        final messenger = ScaffoldMessenger.of(context);
-                        Navigator.pop(ctx);
-                        await empProv.addEmployee(
-                          nip: nipCtrl.text.trim(),
-                          name: nameCtrl.text.trim(),
-                          department: deptCtrl.text.trim(),
-                          position: posCtrl.text.trim(),
-                          role: selectedRole,
-                          phone: phoneCtrl.text.trim(),
-                          officeId: chosenOffice.id,
-                          officeName: chosenOffice.name,
-                        );
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Pegawai ${nameCtrl.text.trim()} berhasil ditambahkan di ${chosenOffice.name}.',
+                          final messenger = ScaffoldMessenger.of(context);
+                          Navigator.pop(ctx);
+                          await empProv.addEmployee(
+                            nip: nipCtrl.text.trim(),
+                            name: nameCtrl.text.trim(),
+                            department: deptCtrl.text.trim(),
+                            position: posCtrl.text.trim(),
+                            role: selectedRole,
+                            phone: phoneCtrl.text.trim(),
+                            officeId: chosenOffice.id,
+                            officeName: chosenOffice.name,
+                          );
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Pegawai ${nameCtrl.text.trim()} berhasil ditambahkan di ${chosenOffice.name}.',
+                              ),
+                              behavior: SnackBarBehavior.floating,
                             ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        child: const Text(
+                          'Simpan Pegawai Baru',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
-                      child: const Text('Simpan Pegawai Baru'),
                     ),
                   ],
                 ),
@@ -2082,8 +2178,10 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
   ) {
     final nipCtrl = TextEditingController(text: user.nip);
     final nameCtrl = TextEditingController(text: user.name);
-    final deptCtrl = TextEditingController(text: user.department);
-    final posCtrl = TextEditingController(text: user.position);
+    String selectedBidang = BidangData.normalizeBidang(user.department);
+    String selectedSeksi = BidangData.normalizeSeksi(selectedBidang, user.position);
+    final deptCtrl = TextEditingController(text: selectedBidang);
+    final posCtrl = TextEditingController(text: selectedSeksi);
     final phoneCtrl = TextEditingController(text: user.phone);
     final settingsProv = context.read<SystemSettingsProvider>();
     final offices = settingsProv.geofencing.offices;
@@ -2092,128 +2190,281 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              16,
-              20,
-              MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.outlineVariant,
-                        borderRadius: BorderRadius.circular(4),
+        builder: (ctx, setSheetState) {
+          final keyboardHeight = MediaQuery.of(ctx).viewInsets.bottom;
+          final screenHeight = MediaQuery.of(ctx).size.height;
+
+          return Center(
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: screenHeight * 0.88,
+                maxWidth: 520,
+              ),
+              margin: EdgeInsets.only(bottom: keyboardHeight),
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1. Header with Grab Handle & Close Button
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 10, 12, 10),
+                      child: Column(
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 36,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: AppColors.outlineVariant.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.edit_note_rounded,
+                                      size: 20,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Ubah Data Pegawai',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      Text(
+                                        'NIK: ${user.nip} • ${user.name}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 20),
+                                onPressed: () => Navigator.pop(ctx),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Ubah Data Pegawai (${user.nip})',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 14),
+                    const Divider(height: 1),
 
-                  TextField(
-                    controller: nipCtrl,
-                    decoration: const InputDecoration(labelText: 'NIP / NIK', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Nama Lengkap', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: deptCtrl,
-                    decoration: const InputDecoration(labelText: 'Divisi / Unit Kerja', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: posCtrl,
-                    decoration: const InputDecoration(labelText: 'Jabatan', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 10),
-                  // Dropdown Kantor Penempatan Cabang
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedOfficeId,
-                    decoration: const InputDecoration(
-                      labelText: 'Kantor Penempatan (Cabang)',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: offices.map((o) {
-                      return DropdownMenuItem<String>(
-                        value: o.id,
-                        child: Text(
-                          '${o.name} (${o.officeTypeLabel})',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13),
+                    // 2. Scrollable Form Body
+                    Flexible(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: nipCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'NIK',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: nameCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Nama Lengkap',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Dropdown Bidang
+                            DropdownButtonFormField<String>(
+                              initialValue: BidangData.allBidang.contains(selectedBidang)
+                                  ? selectedBidang
+                                  : BidangData.allBidang.first,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Bidang',
+                                prefixIcon: Icon(Icons.business_rounded, size: 20),
+                                border: OutlineInputBorder(),
+                              ),
+                              items: BidangData.allBidang.map((b) {
+                                return DropdownMenuItem<String>(
+                                  value: b,
+                                  child: Text(
+                                    b,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setSheetState(() {
+                                    selectedBidang = val;
+                                    deptCtrl.text = val;
+                                    final listSeksi = BidangData.getSeksiForBidang(val);
+                                    selectedSeksi = listSeksi.first;
+                                    posCtrl.text = selectedSeksi;
+                                  });
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            // Dropdown Seksi Bidang (Terintegrasi)
+                            DropdownButtonFormField<String>(
+                              key: ValueKey('edit_seksi_$selectedBidang'),
+                              initialValue: BidangData.getSeksiForBidang(selectedBidang).contains(selectedSeksi)
+                                  ? selectedSeksi
+                                  : BidangData.getSeksiForBidang(selectedBidang).first,
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Seksi Bidang',
+                                prefixIcon: Icon(Icons.assignment_ind_rounded, size: 20),
+                                border: OutlineInputBorder(),
+                              ),
+                              items: BidangData.getSeksiForBidang(selectedBidang).map((s) {
+                                return DropdownMenuItem<String>(
+                                  value: s,
+                                  child: Text(
+                                    s,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setSheetState(() {
+                                    selectedSeksi = val;
+                                    posCtrl.text = val;
+                                  });
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            // Dropdown Kantor Penempatan Cabang
+                            DropdownButtonFormField<String>(
+                              initialValue: offices.any((o) => o.id == selectedOfficeId)
+                                  ? selectedOfficeId
+                                  : (offices.isNotEmpty ? offices.first.id : null),
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Kantor Penempatan',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: offices.map((o) {
+                                return DropdownMenuItem<String>(
+                                  value: o.id,
+                                  child: Text(
+                                    '${o.name} (${o.officeTypeLabel})',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (v) {
+                                if (v != null) setSheetState(() => selectedOfficeId = v);
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: phoneCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'No. Telepon / WhatsApp',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) setSheetState(() => selectedOfficeId = v);
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: phoneCtrl,
-                    decoration: const InputDecoration(labelText: 'No. Telepon / WhatsApp', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 16),
+                      ),
+                    ),
 
-                  ElevatedButton(
-                    onPressed: () async {
-                      final chosenOffice = offices.firstWhere(
-                        (o) => o.id == selectedOfficeId,
-                        orElse: () => offices.first,
-                      );
-                      final messenger = ScaffoldMessenger.of(context);
-                      Navigator.pop(ctx);
-                      final updated = user.copyWith(
-                        nip: nipCtrl.text.trim(),
-                        name: nameCtrl.text.trim(),
-                        department: deptCtrl.text.trim(),
-                        position: posCtrl.text.trim(),
-                        phone: phoneCtrl.text.trim(),
-                        officeId: chosenOffice.id,
-                        officeName: chosenOffice.name,
-                      );
-                      await empProv.updateEmployeeData(updated);
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('Data pegawai diperbarui (Penempatan: ${chosenOffice.name}).'),
-                          behavior: SnackBarBehavior.floating,
+                    // 3. Sticky Footer with Save Button
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerLowest,
+                        border: Border(
+                          top: BorderSide(
+                            color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                          ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final chosenOffice = offices.firstWhere(
+                            (o) => o.id == selectedOfficeId,
+                            orElse: () => offices.first,
+                          );
+                          final messenger = ScaffoldMessenger.of(context);
+                          Navigator.pop(ctx);
+                          final updated = user.copyWith(
+                            nip: nipCtrl.text.trim(),
+                            name: nameCtrl.text.trim(),
+                            department: deptCtrl.text.trim(),
+                            position: posCtrl.text.trim(),
+                            phone: phoneCtrl.text.trim(),
+                            officeId: chosenOffice.id,
+                            officeName: chosenOffice.name,
+                          );
+                          await empProv.updateEmployeeData(updated);
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Data pegawai diperbarui (Penempatan: ${chosenOffice.name}).',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        child: const Text(
+                          'Simpan Perubahan',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
                     ),
-                    child: const Text('Simpan Perubahan'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -2282,13 +2533,11 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
               const Divider(height: 1, color: Color(0xFFEAEDFF)),
               const SizedBox(height: 14),
 
-              _buildDetailRow('Unit Kerja / Divisi', user.department),
+              _buildDetailRow('Bidang', user.department),
               const SizedBox(height: 8),
               _buildDetailRow('Kantor Penempatan', user.officeName),
               const SizedBox(height: 8),
-              _buildDetailRow('Jabatan Resmi', user.position),
-              const SizedBox(height: 8),
-              _buildDetailRow('Status Kepegawaian', user.statusPegawai),
+              _buildDetailRow('Seksi Bidang', user.position),
               const SizedBox(height: 8),
               _buildDetailRow('No. WhatsApp / HP', user.phone),
               const SizedBox(height: 8),
@@ -2333,36 +2582,6 @@ class _SuperadminEmployeeScreenState extends State<SuperadminEmployeeScreen>
     );
   }
 
-  Widget _buildFilterChip({
-    required String label,
-    required bool isSelected,
-    Color? color,
-    required VoidCallback onTap,
-  }) {
-    final activeColor = color ?? AppColors.primary;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor : AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? activeColor : AppColors.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.onSurface,
-          ),
-        ),
-      ),
-    );
-  }
 
   Color _getRoleColor(UserRole role) {
     switch (role) {

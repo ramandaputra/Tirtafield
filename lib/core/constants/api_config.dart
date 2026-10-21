@@ -20,7 +20,9 @@ class ApiConfig {
   static String get approvalUrl => '$baseUrl/approval.php';
   static String get updateProfileUrl => '$baseUrl/update_profile.php';
   static String get employeesUrl => '$baseUrl/employees.php';
+  static String get officesUrl => '$baseUrl/offices.php';
   static String get settingsUrl => '$baseUrl/settings.php';
+  static String get resolveMapsUrl => '$baseUrl/resolve_maps.php';
 
   /// Carto Basemap API Key
   static const String cartoApiKey =

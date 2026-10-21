@@ -65,7 +65,7 @@ class AuthProvider extends ChangeNotifier {
             officeId: d['office_id']?.toString() ?? d['officeId']?.toString() ?? 'hq',
             officeName: d['office_name']?.toString() ??
                 d['officeName']?.toString() ??
-                'Kantor Pusat Tirtafield Tanjung Pinang',
+                'Kantor Pusat PERUMDA Tirta Kepri Tanjung Pinang',
           );
           _isAuthenticated = true;
           _loginError = null;
@@ -78,7 +78,7 @@ class AuthProvider extends ChangeNotifier {
         }
       } else if (response.statusCode == 401 || response.statusCode == 404) {
         final Map<String, dynamic> body = jsonDecode(response.body);
-        _loginError = body['message'] ?? 'NIP atau PIN salah.';
+        _loginError = body['message'] ?? 'NIK atau PIN salah.';
         notifyListeners();
         return false;
       }
@@ -89,7 +89,7 @@ class AuthProvider extends ChangeNotifier {
     final normalizedNik = nik.trim().toLowerCase();
     final normalizedPin = pin.trim();
 
-    // Look for matching user by NIP / NIK in fallback mock
+    // Look for matching user by NIK in fallback mock
     final matchedUser = _availableUsers.firstWhere(
       (u) =>
           u.nip.toLowerCase() == normalizedNik ||
@@ -106,7 +106,7 @@ class AuthProvider extends ChangeNotifier {
     );
 
     if (matchedUser.id.isEmpty) {
-      _loginError = 'NIK / NIP tidak terdaftar dalam sistem database.';
+      _loginError = 'NIK tidak terdaftar dalam sistem database.';
       notifyListeners();
       return false;
     }

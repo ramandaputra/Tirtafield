@@ -20,7 +20,7 @@ class TirtafieldApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Live MySQL Database repository (with resilient offline mock fallback)
     final attendanceRepo = ApiAttendanceRepository();
-    final approvalRepo = MockApprovalRepository();
+    final approvalRepo = ApiApprovalRepository();
 
     return MultiProvider(
       providers: [

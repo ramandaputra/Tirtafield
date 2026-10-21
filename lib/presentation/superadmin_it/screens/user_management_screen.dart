@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/role_badge.dart';
+import '../../../data/constants/bidang_data.dart';
 import '../../../data/models/user_model.dart';
 import '../../../state/auth_provider.dart';
 import '../../../state/system_settings_provider.dart';
@@ -169,8 +170,10 @@ class UserManagementScreen extends StatelessWidget {
 
   void _showEditUserDialog(BuildContext context, UserModel user) {
     final nameCtrl = TextEditingController(text: user.name);
-    final deptCtrl = TextEditingController(text: user.department);
-    final posCtrl = TextEditingController(text: user.position);
+    String selectedBidang = BidangData.normalizeBidang(user.department);
+    String selectedSeksi = BidangData.normalizeSeksi(selectedBidang, user.position);
+    final deptCtrl = TextEditingController(text: selectedBidang);
+    final posCtrl = TextEditingController(text: selectedSeksi);
     UserRole selectedRole = user.role;
     final settingsProv = context.read<SystemSettingsProvider>();
     final offices = settingsProv.geofencing.offices;
@@ -214,7 +217,7 @@ class UserManagementScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'NIK / NIP: ${user.nip}',
+                      'NIK: ${user.nip}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                   ),
@@ -227,27 +230,77 @@ class UserManagementScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: deptCtrl,
+                  // Dropdown Bidang
+                  DropdownButtonFormField<String>(
+                    initialValue: BidangData.allBidang.contains(selectedBidang)
+                        ? selectedBidang
+                        : BidangData.allBidang.first,
+                    isExpanded: true,
                     decoration: const InputDecoration(
-                      labelText: 'Divisi / Penempatan Unit',
+                      labelText: 'Bidang',
                       prefixIcon: Icon(Icons.business_rounded),
                     ),
+                    items: BidangData.allBidang.map((b) {
+                      return DropdownMenuItem<String>(
+                        value: b,
+                        child: Text(
+                          b,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          selectedBidang = val;
+                          deptCtrl.text = val;
+                          final listSeksi = BidangData.getSeksiForBidang(val);
+                          selectedSeksi = listSeksi.first;
+                          posCtrl.text = selectedSeksi;
+                        });
+                      }
+                    },
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: posCtrl,
+                  // Dropdown Seksi Bidang (Terintegrasi)
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('edit_user_seksi_$selectedBidang'),
+                    initialValue: BidangData.getSeksiForBidang(selectedBidang).contains(selectedSeksi)
+                        ? selectedSeksi
+                        : BidangData.getSeksiForBidang(selectedBidang).first,
+                    isExpanded: true,
                     decoration: const InputDecoration(
-                      labelText: 'Jabatan (Position)',
+                      labelText: 'Seksi Bidang',
                       prefixIcon: Icon(Icons.badge_rounded),
                     ),
+                    items: BidangData.getSeksiForBidang(selectedBidang).map((s) {
+                      return DropdownMenuItem<String>(
+                        value: s,
+                        child: Text(
+                          s,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          selectedSeksi = val;
+                          posCtrl.text = val;
+                        });
+                      }
+                    },
                   ),
                   const SizedBox(height: 12),
                   // Dropdown Kantor Penempatan Cabang
                   DropdownButtonFormField<String>(
                     initialValue: selectedOfficeId,
                     decoration: const InputDecoration(
-                      labelText: 'Kantor Penempatan (Cabang)',
+                      labelText: 'Kantor Penempatan',
                       prefixIcon: Icon(Icons.store_mall_directory_rounded),
                     ),
                     items: offices.map((office) {
@@ -335,7 +388,10 @@ class UserManagementScreen extends StatelessWidget {
   void _showAddUserDialog(BuildContext context) {
     final nameCtrl = TextEditingController();
     final nipCtrl = TextEditingController();
-    final deptCtrl = TextEditingController();
+    String selectedBidang = BidangData.mainOperationalBidang.first;
+    String selectedSeksi = BidangData.getSeksiForBidang(selectedBidang).first;
+    final deptCtrl = TextEditingController(text: selectedBidang);
+    final posCtrl = TextEditingController(text: selectedSeksi);
     UserRole selectedRole = UserRole.karyawan;
     final settingsProv = context.read<SystemSettingsProvider>();
     final offices = settingsProv.geofencing.offices;
@@ -364,17 +420,76 @@ class UserManagementScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   TextField(
                     controller: nipCtrl,
-                    decoration: const InputDecoration(labelText: 'NIP / ID Karyawan'),
+                    decoration: const InputDecoration(labelText: 'NIK'),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: deptCtrl,
-                    decoration: const InputDecoration(labelText: 'Departemen / Divisi'),
+                  // Dropdown Bidang
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedBidang,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Bidang',
+                      prefixIcon: Icon(Icons.business_rounded),
+                    ),
+                    items: BidangData.allBidang.map((b) {
+                      return DropdownMenuItem<String>(
+                        value: b,
+                        child: Text(
+                          b,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          selectedBidang = val;
+                          deptCtrl.text = val;
+                          final listSeksi = BidangData.getSeksiForBidang(val);
+                          selectedSeksi = listSeksi.first;
+                          posCtrl.text = selectedSeksi;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // Dropdown Seksi Bidang (Terintegrasi)
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('add_user_seksi_$selectedBidang'),
+                    initialValue: BidangData.getSeksiForBidang(selectedBidang).contains(selectedSeksi)
+                        ? selectedSeksi
+                        : BidangData.getSeksiForBidang(selectedBidang).first,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Seksi Bidang',
+                      prefixIcon: Icon(Icons.badge_rounded),
+                    ),
+                    items: BidangData.getSeksiForBidang(selectedBidang).map((s) {
+                      return DropdownMenuItem<String>(
+                        value: s,
+                        child: Text(
+                          s,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          selectedSeksi = val;
+                          posCtrl.text = val;
+                        });
+                      }
+                    },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: selectedOfficeId,
-                    decoration: const InputDecoration(labelText: 'Kantor Penempatan (Cabang)'),
+                    decoration: const InputDecoration(labelText: 'Kantor Penempatan'),
                     items: offices.map((office) {
                       return DropdownMenuItem<String>(
                         value: office.id,
@@ -421,8 +536,8 @@ class UserManagementScreen extends StatelessWidget {
                       name: nameCtrl.text.trim(),
                       email: '${nameCtrl.text.trim().toLowerCase().replaceAll(' ', '.')}@tirtafield.co.id',
                       role: selectedRole,
-                      department: deptCtrl.text.isEmpty ? 'Umum' : deptCtrl.text.trim(),
-                      position: selectedRole.displayName,
+                      department: deptCtrl.text.isEmpty ? 'Bidang Hubungan Langganan' : deptCtrl.text.trim(),
+                      position: posCtrl.text.isEmpty ? 'Seksi Pembacaan Meter' : posCtrl.text.trim(),
                       officeId: currentOffice.id,
                       officeName: currentOffice.name,
                     );

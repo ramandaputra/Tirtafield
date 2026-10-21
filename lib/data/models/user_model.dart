@@ -6,11 +6,11 @@ enum UserRole {
   String get displayName {
     switch (this) {
       case UserRole.karyawan:
-        return 'Karyawan';
+        return 'Pengguna';
       case UserRole.direktur:
-        return 'Direktur (Admin)';
+        return 'Admin';
       case UserRole.staffIT:
-        return 'Staff IT (Superadmin)';
+        return 'Superadmin';
     }
   }
 
@@ -21,7 +21,7 @@ enum UserRole {
 
 class UserModel {
   final String id;
-  final String nip; // NIK / NIP Karyawan
+  final String nip; // NIK
   final String name;
   final String email;
   final String pin; // PIN 6 digit
@@ -49,7 +49,7 @@ class UserModel {
     this.statusPegawai = 'Karyawan Tetap',
     this.isActive = true,
     this.officeId = 'hq',
-    this.officeName = 'Kantor Pusat Tirtafield Tanjung Pinang',
+    this.officeName = 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
   });
 
   UserModel copyWith({
@@ -125,7 +125,7 @@ class UserModel {
       officeId: (json['officeId'] as String?) ?? (json['office_id'] as String?) ?? 'hq',
       officeName: (json['officeName'] as String?) ??
           (json['office_name'] as String?) ??
-          'Kantor Pusat Tirtafield Tanjung Pinang',
+          'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
     );
   }
 }

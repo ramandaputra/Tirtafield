@@ -315,7 +315,7 @@ class _SuperadminMonitoringScreenState extends State<SuperadminMonitoringScreen>
         onChanged: (val) => setState(() => _searchQuery = val.trim()),
         style: const TextStyle(fontSize: 13, fontFamily: 'Inter'),
         decoration: InputDecoration(
-          hintText: 'Cari nama pegawai, NIP, atau keterangan presensi...',
+          hintText: 'Cari nama pegawai, NIK, atau keterangan presensi...',
           hintStyle: const TextStyle(
             fontSize: 12,
             color: AppColors.onSurfaceVariant,

@@ -17,14 +17,11 @@ class AkunKaryawanScreen extends StatefulWidget {
   State<AkunKaryawanScreen> createState() => _AkunKaryawanScreenState();
 }
 
-class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
-    with SingleTickerProviderStateMixin {
+class _AkunKaryawanScreenState extends State<AkunKaryawanScreen> {
   late TextEditingController _nameController;
   late TextEditingController _divisionController;
+  late TextEditingController _positionController;
   bool _reminderEnabled = true;
-
-  late final AnimationController _pulseController;
-  late final Animation<double> _pulseAnimation;
 
   static const String _defaultAvatarUrl =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBHnouN4NhcfWmjDbG_twFO6sebw3bZ18Eh5o0S5X77EHF5sjwqdJN1_ReCmIRAXuAloD9dPZQaPaz6HVgpuNpNvmO58tfZnPqD0S2Or68H_L0RpASTtBWA4c84ApGfNtIT2D9Dp8lVoCp0JDnad7J_CE3txa5AZ09a1vR9wuxu1NBIUFtj4kKAYnne-NzoAjd5q04Al1Cu_2jIhmMuPgiIkaTQw-LExIXsFQapZNGSTxquu43ZR8o';
@@ -37,16 +34,8 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
     final user = context.read<AuthProvider>().currentUser;
     _nameController = TextEditingController(text: user.name);
     _divisionController = TextEditingController(text: user.department);
+    _positionController = TextEditingController(text: user.position);
     _lastSyncedUser = user;
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.25).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
   }
 
   @override
@@ -55,9 +44,11 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
     final user = context.watch<AuthProvider>().currentUser;
     if (_lastSyncedUser?.id != user.id ||
         _lastSyncedUser?.name != user.name ||
-        _lastSyncedUser?.department != user.department) {
+        _lastSyncedUser?.department != user.department ||
+        _lastSyncedUser?.position != user.position) {
       _nameController.text = user.name;
       _divisionController.text = user.department;
+      _positionController.text = user.position;
       _lastSyncedUser = user;
     }
   }
@@ -66,7 +57,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
   void dispose() {
     _nameController.dispose();
     _divisionController.dispose();
-    _pulseController.dispose();
+    _positionController.dispose();
     super.dispose();
   }
 
@@ -846,30 +837,16 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                user.name.isNotEmpty
-                                    ? user.name
-                                    : 'Budi Pratama',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.onSurface,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            const Icon(
-                              Icons.verified_rounded,
-                              color: AppColors.secondary,
-                              size: 18,
-                            ),
-                          ],
+                        Text(
+                          user.name.isNotEmpty
+                              ? user.name
+                              : 'Budi Pratama',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                            fontFamily: 'Inter',
+                          ),
                         ),
                         const SizedBox(height: 3),
                         RichText(
@@ -900,62 +877,6 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                             fontSize: 12,
                             color: AppColors.onSurfaceVariant,
                             fontFamily: 'Inter',
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.tertiaryContainer
-                                .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColors.tertiaryContainer
-                                  .withValues(alpha: 0.25),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Pulsing green dot
-                              AnimatedBuilder(
-                                animation: _pulseAnimation,
-                                builder: (context, child) {
-                                  return Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.tertiaryContainer,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.tertiaryContainer
-                                              .withValues(
-                                            alpha: _pulseAnimation.value > 1.0
-                                                ? 0.5
-                                                : 0.1,
-                                          ),
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Karyawan Tetap (Aktif)',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.tertiaryContainer,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                            ],
                           ),
                         ),
                       ],
@@ -992,94 +913,35 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text(
-                  'Informasi Kepegawaian',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isSuperadmin
-                      ? const Color(0xFFEFF6FF)
-                      : AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isSuperadmin ? 'Mode Superadmin' : 'Presensi Mobile',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: isSuperadmin
-                        ? const Color(0xFF2563EB)
-                        : AppColors.secondary,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            ],
+          const Text(
+            'Informasi Kepegawaian',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+              fontFamily: 'Inter',
+            ),
           ),
           const SizedBox(height: 14),
 
-
           // Field 1: Nama Lengkap
-          Row(
-            children: [
-              const Flexible(
-                child: Text(
-                  'Nama Lengkap',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              if (!isSuperadmin)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'Terkunci',
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-            ],
+          const Text(
+            'Nama Lengkap',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurface,
+              fontFamily: 'Inter',
+            ),
           ),
           const SizedBox(height: 6),
           TextFormField(
             controller: _nameController,
-            readOnly: !isSuperadmin,
+            readOnly: true,
             style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w500,
-              color: !isSuperadmin
-                  ? AppColors.onSurface.withValues(alpha: 0.75)
-                  : AppColors.onSurface,
+              color: AppColors.onSurface.withValues(alpha: 0.8),
               fontFamily: 'Inter',
             ),
             decoration: InputDecoration(
@@ -1088,24 +950,22 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                 size: 20,
                 color: AppColors.onSurfaceVariant,
               ),
-              suffixIcon: !isSuperadmin
-                  ? const Tooltip(
-                      message: 'Hanya dapat diubah oleh Superadmin',
-                      child: Icon(
-                        Icons.lock_outline_rounded,
-                        size: 18,
-                        color: AppColors.outline,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.edit_rounded,
-                      size: 18,
-                      color: AppColors.secondary,
-                    ),
+              suffixIcon: const Tooltip(
+                message: 'Hanya admin yang dapat merubah',
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  size: 18,
+                  color: AppColors.outline,
+                ),
+              ),
+              helperText: 'Hanya admin yang dapat merubah',
+              helperStyle: const TextStyle(
+                fontSize: 11,
+                color: AppColors.onSurfaceVariant,
+                fontFamily: 'Inter',
+              ),
               filled: true,
-              fillColor: !isSuperadmin
-                  ? const Color(0xFFF8FAFC)
-                  : AppColors.background,
+              fillColor: const Color(0xFFF8FAFC),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
@@ -1131,77 +991,48 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
           ),
           const SizedBox(height: 14),
 
-          // Field 2: Divisi & Penempatan Cabang
-          Row(
-            children: [
-              const Flexible(
-                child: Text(
-                  'Divisi & Penempatan Cabang',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              if (!isSuperadmin)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'Terkunci',
-                    style: TextStyle(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-            ],
+          // Field 2: Bidang
+          const Text(
+            'Bidang',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurface,
+              fontFamily: 'Inter',
+            ),
           ),
           const SizedBox(height: 6),
           TextFormField(
             controller: _divisionController,
-            readOnly: !isSuperadmin,
+            readOnly: true,
             style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w500,
-              color: !isSuperadmin
-                  ? AppColors.onSurface.withValues(alpha: 0.75)
-                  : AppColors.onSurface,
+              color: AppColors.onSurface.withValues(alpha: 0.8),
               fontFamily: 'Inter',
             ),
             decoration: InputDecoration(
               prefixIcon: const Icon(
-                Icons.location_on_rounded,
+                Icons.business_outlined,
                 size: 20,
                 color: AppColors.onSurfaceVariant,
               ),
-              suffixIcon: !isSuperadmin
-                  ? const Tooltip(
-                      message: 'Hanya dapat diubah oleh Superadmin',
-                      child: Icon(
-                        Icons.lock_outline_rounded,
-                        size: 18,
-                        color: AppColors.outline,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.edit_rounded,
-                      size: 18,
-                      color: AppColors.secondary,
-                    ),
+              suffixIcon: const Tooltip(
+                message: 'Hanya admin yang dapat merubah',
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  size: 18,
+                  color: AppColors.outline,
+                ),
+              ),
+              helperText: 'Hanya admin yang dapat merubah',
+              helperStyle: const TextStyle(
+                fontSize: 11,
+                color: AppColors.onSurfaceVariant,
+                fontFamily: 'Inter',
+              ),
               filled: true,
-              fillColor: !isSuperadmin
-                  ? const Color(0xFFF8FAFC)
-                  : AppColors.background,
+              fillColor: const Color(0xFFF8FAFC),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
@@ -1225,50 +1056,86 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
               ),
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 14),
+
+          // Field 3: Seksi Bidang
           const Text(
-            'Menentukan radius batas wilayah (geofence) presensi GPS perangkat Anda.',
+            'Seksi Bidang',
             style: TextStyle(
-              fontSize: 11,
-              color: AppColors.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurface,
               fontFamily: 'Inter',
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: _positionController,
+            readOnly: true,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              color: AppColors.onSurface.withValues(alpha: 0.8),
+              fontFamily: 'Inter',
+            ),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(
+                Icons.assignment_ind_rounded,
+                size: 20,
+                color: AppColors.onSurfaceVariant,
+              ),
+              suffixIcon: const Tooltip(
+                message: 'Hanya admin yang dapat merubah',
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  size: 18,
+                  color: AppColors.outline,
+                ),
+              ),
+              helperText: 'Hanya admin yang dapat merubah',
+              helperStyle: const TextStyle(
+                fontSize: 11,
+                color: AppColors.onSurfaceVariant,
+                fontFamily: 'Inter',
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF8FAFC),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppColors.primaryContainer,
+                  width: 1.5,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 14),
 
-          // Field: Kantor Penempatan (Titik Acuan Radius)
-          Row(
-            children: [
-              const Flexible(
-                child: Text(
-                  'Kantor Penempatan (Acuan Radius Presensi)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Terkunci',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
+          // Field 4: Kantor Penempatan (Titik Acuan Radius)
+          const Text(
+            'Kantor Penempatan (Acuan Radius Presensi)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurface,
+              fontFamily: 'Inter',
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Container(
@@ -1295,7 +1162,7 @@ class _AkunKaryawanScreenState extends State<AkunKaryawanScreen>
                       Text(
                         user.officeName.isNotEmpty
                             ? user.officeName
-                            : 'Kantor Pusat Tirtafield Tanjung Pinang',
+                            : 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
                         style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,

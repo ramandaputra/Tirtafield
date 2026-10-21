@@ -55,7 +55,7 @@ class _ApprovalManagementScreenState extends State<ApprovalManagementScreen>
     final reviewerName = context.watch<AuthProvider>().currentUser.name;
     final allList = approvalProv.allApprovals;
 
-    // Filter by search query (name, NIP, title, or reason)
+    // Filter by search query (name, NIK, title, or reason)
     final filteredAll = allList.where((a) {
       if (_searchQuery.isEmpty) return true;
       final q = _searchQuery.toLowerCase();
@@ -86,7 +86,7 @@ class _ApprovalManagementScreenState extends State<ApprovalManagementScreen>
               onChanged: (val) => setState(() => _searchQuery = val.trim()),
               style: const TextStyle(fontSize: 13, fontFamily: 'Inter'),
               decoration: InputDecoration(
-                hintText: 'Cari nama pegawai, NIP, atau keterangan presensi...',
+                hintText: 'Cari nama pegawai, NIK, atau keterangan presensi...',
                 hintStyle: const TextStyle(
                   fontSize: 12,
                   color: AppColors.onSurfaceVariant,

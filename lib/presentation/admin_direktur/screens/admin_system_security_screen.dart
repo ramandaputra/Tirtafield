@@ -79,14 +79,14 @@ class AdminSystemSecurityScreen extends StatelessWidget {
         _buildRestrictedCard(
           title: 'Hierarki Struktur Peran & Otoritas Sistem',
           description:
-              'Superadmin mengelola akun Admin, hierarki peran (Superadmin IT → Admin Direktur → Karyawan), dan pemetaan otorisasi.',
+              'Superadmin mengelola hierarki peran (Superadmin → Admin → Pengguna) dan pemetaan otorisasi.',
           extraContent: Column(
             children: [
-              _buildHierarchyRow('1. Superadmin IT (PUSIMPEL)', 'Full Akses Sistem, Master Database & API', const Color(0xFF1D4ED8)),
+              _buildHierarchyRow('1. Superadmin', 'Full Akses Sistem, Master Database & API', const Color(0xFF1D4ED8)),
               const Divider(height: 12, color: AppColors.cardBorder),
-              _buildHierarchyRow('2. Admin (Direktur / Cabang)', 'Kelola Operasional, Plotting Shift, Verifikasi T1', const Color(0xFF15803D)),
+              _buildHierarchyRow('2. Admin', 'Kelola Operasional, Plotting Shift, Verifikasi T1', const Color(0xFF15803D)),
               const Divider(height: 12, color: AppColors.cardBorder),
-              _buildHierarchyRow('3. Karyawan Lapangan / Staf', 'Presensi Mobile, Koreksi & Presensi Luar Radius', AppColors.textSecondary),
+              _buildHierarchyRow('3. Pengguna', 'Presensi Mobile, Koreksi & Presensi Luar Radius', AppColors.textSecondary),
             ],
           ),
           actionText: 'Ajukan Penyesuaian Peran ke Superadmin',

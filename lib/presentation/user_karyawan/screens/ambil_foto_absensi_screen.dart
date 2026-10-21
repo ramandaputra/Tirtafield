@@ -2,12 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/utils/date_time_helper.dart';
+import '../../../core/services/location_service.dart';
 import '../../../data/models/attendance_model.dart';
 import '../../../state/attendance_provider.dart';
 import '../../../state/auth_provider.dart';
 import '../../../state/system_settings_provider.dart';
 import 'bukti_presensi_berhasil_screen.dart';
+import '../widgets/leaflet_map_view.dart';
 
 class AmbilFotoAbsensiScreen extends StatefulWidget {
   final AttendanceSlotType slotType;
@@ -26,12 +27,12 @@ class AmbilFotoAbsensiScreen extends StatefulWidget {
     super.key,
     this.slotType = AttendanceSlotType.istirahatKeluar,
     this.slotTitle = 'Presensi Istirahat Keluar',
-    this.projectLocation = 'Kantor Tirtafield Tanjung Pinang',
+    this.projectLocation = 'Kantor PERUMDA Tirta Kepri Tanjung Pinang',
     this.projectAddress =
         'Tj. Pinang Timur, Kota Tanjung Pinang, Kepulauan Riau 29113',
     this.distanceHq = '8.5 km',
     this.isWithinRadius = false,
-    this.targetOfficeName = 'Kantor Pusat Tirtafield (Kantor Utama)',
+    this.targetOfficeName = 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
     this.targetOfficeType = 'Kantor Utama',
     this.latitude,
     this.longitude,
@@ -57,7 +58,7 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
   late Animation<double> _flashAnimation;
 
   final TextEditingController _notesController = TextEditingController(
-    text: 'Presensi kehadiran operasional Kantor Tirtafield Tanjung Pinang',
+    text: 'Presensi kehadiran operasional Kantor PERUMDA Tirta Kepri Tanjung Pinang',
   );
   final TextEditingController _lateReasonController = TextEditingController();
 
@@ -732,14 +733,8 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
     );
   }
 
-  // 1B. CAPTURED SELFIE RESULT VIEWFINDER (WITH PROMINENT WATERMARK STAMP)
+  // 1B. CAPTURED SELFIE RESULT VIEWFINDER
   Widget _buildCapturedSelfieResultViewfinder() {
-    final stampTime = _capturedDateTime ?? _currentTime;
-    final hours = stampTime.hour.toString().padLeft(2, '0');
-    final minutes = stampTime.minute.toString().padLeft(2, '0');
-    final seconds = stampTime.second.toString().padLeft(2, '0');
-    final timeStr = '$hours:$minutes:$seconds';
-
     return AspectRatio(
       aspectRatio: 4 / 5,
       child: Container(
@@ -895,220 +890,6 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
                         alignment: Alignment.bottomRight,
                         child: _buildCornerBracket(isTop: false, isLeft: false),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // PROMINENT WATERMARK STAMP DIRECTLY ON PHOTO
-              // Contains: 1. Timestamp, 2. Lokasi, 3. Radius Jarak Lapangan dari Kantor Utama
-              Positioned(
-                bottom: 10,
-                left: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.inverseSurface.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.tertiaryFixed.withValues(alpha: 0.45),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Badge: Official Watermark Title
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.verified_user_rounded,
-                                  size: 13,
-                                  color: AppColors.tertiaryFixed,
-                                ),
-                                SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    'BUKTI PRESENSI RESMI KORPORAT',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: AppColors.tertiaryFixed,
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1.5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.tertiaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.tertiaryFixed.withValues(alpha: 0.4),
-                              ),
-                            ),
-                            child: const Text(
-                              'ANTI-FAKE GPS',
-                              style: TextStyle(
-                                color: AppColors.tertiaryFixed,
-                                fontSize: 8.5,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      Container(
-                        height: 1,
-                        color: Colors.white.withValues(alpha: 0.12),
-                      ),
-                      const SizedBox(height: 6),
-
-                      // 1. TIMESTAMP ROW
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.schedule_rounded,
-                            size: 13,
-                            color: AppColors.tertiaryFixed,
-                          ),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Text(
-                              '${DateTimeHelper.formatIndonesianDate(stampTime)} • $timeStr WIB',
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-
-                      // 2. LOKASI ROW
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.location_on_rounded,
-                            size: 13,
-                            color: AppColors.tertiaryFixed,
-                          ),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.projectLocation,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  widget.projectAddress,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                    fontSize: 9.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-
-                      // 3. RADIUS JARAK DARI KANTOR UTAMA ROW
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.straighten_rounded,
-                            size: 13,
-                            color: AppColors.tertiaryFixed,
-                          ),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    '${widget.distanceHq} dari ${widget.targetOfficeName}',
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: AppColors.tertiaryFixed,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Jarak: ${widget.distanceHq} ke ${widget.targetOfficeName}',
-                                  style: const TextStyle(
-                                    color: AppColors.tertiaryFixed,
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (widget.coordinates != null) ...[
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.gps_fixed_rounded,
-                              size: 11,
-                              color: AppColors.tertiaryFixedDim,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'GPS: ${widget.coordinates}',
-                              style: const TextStyle(
-                                color: AppColors.tertiaryFixedDim,
-                                fontSize: 9.5,
-                                fontFamily: 'monospace',
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -1270,6 +1051,9 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
     final stampTime = _capturedDateTime ?? _currentTime;
     final hours = stampTime.hour.toString().padLeft(2, '0');
     final minutes = stampTime.minute.toString().padLeft(2, '0');
+    final lat = widget.latitude ?? LocationService.hqLatitude;
+    final lng = widget.longitude ?? LocationService.hqLongitude;
+    final dateStr = '${stampTime.day} ${_getShortMonth(stampTime.month)} ${stampTime.year}';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1373,34 +1157,45 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
           const Divider(height: 1, color: Color(0xFFEAEDFF)),
           const SizedBox(height: 12),
 
-          // 3-Column Stats Row
+          // BARIS 1: TANGGAL, WAKTU, JARAK (SEBARIS)
           Row(
             children: [
               Expanded(
-                child: _buildBentoStatItem(
+                child: _buildBentoStatCard(
+                  title: 'TANGGAL',
+                  value: dateStr,
+                  valueColor: AppColors.onSurface,
+                  icon: Icons.calendar_today_rounded,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildBentoStatCard(
                   title: 'WAKTU',
                   value: '$hours:$minutes WIB',
                   valueColor: AppColors.onSurface,
+                  icon: Icons.schedule_rounded,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _buildBentoStatItem(
-                  title: 'LOKASI',
-                  value: 'Tj. Pinang Timur',
-                  valueColor: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildBentoStatItem(
-                  title: 'JARAK KE KANTOR',
+                child: _buildBentoStatCard(
+                  title: 'JARAK',
                   value: widget.distanceHq,
                   valueColor: AppColors.primary,
+                  icon: Icons.straighten_rounded,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 8),
+
+          // BARIS 2: LOKASI SENDIRI DIBAWAH (LEBAR PENUH DARI TANGGAL HINGGA JARAK, INFORMASI LENGKAP MAPS)
+          _buildBentoFullWidthLocationCard(),
+          const SizedBox(height: 12),
+
+          // PETA HASIL ABSENSI KARYAWAN (DIBAWAH LOKASI)
+          _buildAttendanceResultMap(lat, lng),
           const SizedBox(height: 12),
 
           // LATE NOTICE & MANDATORY REASON INPUT
@@ -1549,27 +1344,63 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
     );
   }
 
-  Widget _buildBentoStatItem({
+
+
+  String _getShortMonth(int month) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+    if (month >= 1 && month <= 12) return months[month - 1];
+    return '';
+  }
+
+  Widget _buildBentoStatCard({
     required String title,
     required String value,
     required Color valueColor,
+    IconData? icon,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.25),
+        ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.outline,
-              letterSpacing: 0.4,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 11,
+                  color: AppColors.outline,
+                ),
+                const SizedBox(width: 3),
+              ],
+              Flexible(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.outline,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 3),
           Text(
@@ -1578,10 +1409,265 @@ class _AmbilFotoAbsensiScreenState extends State<AmbilFotoAbsensiScreen>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.bold,
+              fontSize: 11.0,
+              fontWeight: FontWeight.w700,
               color: valueColor,
               fontFamily: 'Inter',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBentoFullWidthLocationCard() {
+    final locName = widget.projectLocation.isNotEmpty
+        ? widget.projectLocation
+        : widget.targetOfficeName;
+    final address = widget.projectAddress.isNotEmpty
+        ? widget.projectAddress
+        : locName;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  size: 13,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                'LOKASI',
+                style: TextStyle(
+                  fontSize: 9.0,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.outline,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.tertiaryContainer.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'Sesuai Maps',
+                  style: TextStyle(
+                    fontSize: 9.0,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.tertiaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            locName,
+            style: const TextStyle(
+              fontSize: 12.0,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+              fontFamily: 'Inter',
+            ),
+          ),
+          if (address.isNotEmpty && address != locName) ...[
+            const SizedBox(height: 3),
+            Text(
+              address,
+              style: const TextStyle(
+                fontSize: 11.0,
+                color: AppColors.onSurfaceVariant,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceResultMap(double lat, double lng) {
+    final popupHtml = '<b>Posisi Presensi Karyawan</b><br/>'
+        'Lat: ${lat.toStringAsFixed(6)}<br/>'
+        'Lng: ${lng.toStringAsFixed(6)}<br/>'
+        'Jarak HQ: ${widget.distanceHq}';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.map_rounded,
+                          size: 15,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Flexible(
+                        child: Text(
+                          'Peta Hasil Absensi Karyawan',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.onSurface,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () => LocationService.showMapChooserSheet(context, lat, lng),
+                  borderRadius: BorderRadius.circular(6),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Buka Maps',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        SizedBox(width: 3),
+                        Icon(
+                          Icons.open_in_new_rounded,
+                          size: 13,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 0.6, color: Color(0x20C4C5D5)),
+
+          // Map Viewport
+          ClipRRect(
+            child: SizedBox(
+              height: 180,
+              width: double.infinity,
+              child: buildLeafletMapView(
+                lat: lat,
+                lng: lng,
+                zoom: 16,
+                popupText: popupHtml,
+                targetLat: LocationService.hqLatitude,
+                targetLng: LocationService.hqLongitude,
+                targetName: widget.targetOfficeName,
+                targetRadius: LocationService.maxAllowedRadiusMeters,
+              ),
+            ),
+          ),
+
+          // Bottom status bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(13)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.my_location_rounded,
+                        size: 12,
+                        color: AppColors.tertiaryContainer,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}',
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            fontFamily: 'RobotoMono',
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: widget.isWithinRadius
+                        ? const Color(0xFFE8F5E9)
+                        : const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    widget.isWithinRadius ? 'Di Dalam Radius' : 'Di Luar Radius',
+                    style: TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: widget.isWithinRadius
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFB45309),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

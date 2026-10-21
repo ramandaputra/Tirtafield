@@ -385,12 +385,12 @@ class OfficeLocationItem {
   factory OfficeLocationItem.fromJson(Map<String, dynamic> json) {
     return OfficeLocationItem(
       id: json['id'] as String? ?? 'office_${DateTime.now().millisecondsSinceEpoch}',
-      name: json['name'] as String? ?? 'Kantor',
-      address: json['address'] as String? ?? '',
+      name: json['name'] as String? ?? json['nama_kantor'] as String? ?? 'Kantor',
+      address: json['address'] as String? ?? json['alamat'] as String? ?? '',
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.92031,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 104.46069,
       radius: (json['radius'] as num?)?.toDouble() ?? 50.0,
-      isPrimary: json['is_primary'] as bool? ?? false,
+      isPrimary: (json['is_primary'] == true || json['is_primary'] == 1 || json['is_primary'] == '1'),
     );
   }
 }
@@ -406,12 +406,12 @@ class GeofencingConfig {
             ? offices.first
             : const OfficeLocationItem(
                 id: 'hq',
-                name: 'Kantor Pusat Tirtafield Tanjung Pinang',
+                name: 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
                 address:
-                    'Jl. Wisata Bahari No. 12, Tanjung Pinang Timur, Kepulauan Riau',
+                    'Jl. M.T Haryono, Km.3, Tanjungpinang, Kepulauan Riau',
                 latitude: 0.92031,
                 longitude: 104.46069,
-                radius: 50.0,
+                radius: 200.0,
                 isPrimary: true,
               ),
       );
@@ -425,11 +425,11 @@ class GeofencingConfig {
     this.offices = const [
       OfficeLocationItem(
         id: 'hq',
-        name: 'Kantor Pusat Tirtafield Tanjung Pinang',
-        address: 'Jl. Wisata Bahari No. 12, Tanjung Pinang Timur, Kepulauan Riau',
+        name: 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
+        address: 'Jl. M.T Haryono, Km.3, Tanjungpinang, Kepulauan Riau',
         latitude: 0.92031,
         longitude: 104.46069,
-        radius: 50.0,
+        radius: 200.0,
         isPrimary: true,
       ),
       OfficeLocationItem(

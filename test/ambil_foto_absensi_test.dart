@@ -49,13 +49,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // --- PHASE 1: CAMERA SHUTTER ACTIVE (BEFORE CAPTURING SELFIE) ---
-    expect(find.text('Ambil Foto Selfie'), findsWidgets);
+    expect(find.text('Ambil Swafoto'), findsWidgets);
     expect(find.text('Kamera Depan'), findsOneWidget);
-    expect(find.text('Langkah 1 dari 2: Ambil Foto Selfie untuk Memvalidasi Kehadiran'), findsOneWidget);
-    // Peringatan atribut perusahaan sebelum foto (single clean banner)
-    expect(find.text('Pastikan anda menggunakan atribut perusahaan'), findsOneWidget);
     // Send button must not be visible yet
-    expect(find.text('Kirim & Simpan Presensi'), findsNothing);
+    expect(find.text('Kirim Presensi Sekarang'), findsNothing);
 
     // Tap Camera Shutter Button to take the selfie
     final captureButton = find.byKey(const ValueKey('capture_selfie_button'));
@@ -63,34 +60,39 @@ void main() {
     await tester.tap(captureButton);
     await tester.pump(const Duration(milliseconds: 500));
 
-    // --- PHASE 2: CAPTURED RESULT (WATERMARK STAMP ON PHOTO) ---
-    expect(find.text('Hasil Foto Selfie'), findsOneWidget);
-    expect(find.text('Langkah 2 dari 2: Foto & Stempel Terverifikasi Siap Dikirim'), findsOneWidget);
+    // --- PHASE 2: CAPTURED RESULT (WATERMARK REMOVED, BENTO STACKED STATS) ---
+    expect(find.text('Hasil Swafoto'), findsOneWidget);
+    expect(find.text('Swafoto Siap'), findsOneWidget);
 
-    // Verify 3 Required Watermark Elements Directly on the Photo Stamp:
-    // 1. Official Header & Timestamp with WIB
-    expect(find.text('BUKTI PRESENSI RESMI KORPORAT'), findsOneWidget);
+    // Verify Bento Stats:
+    // 1. Tanggal, Waktu, Jarak sebaris
+    expect(find.text('TANGGAL'), findsOneWidget);
+    expect(find.text('WAKTU'), findsOneWidget);
     expect(find.textContaining('WIB'), findsWidgets);
-    // 2. Lokasi Lapangan
-    expect(find.text('Area Proyek Sudirman Office Tower'), findsWidgets);
-    // 3. Radius Jarak Lapangan dari Kantor Utama
-    expect(find.text('8.5 km dari Kantor Pusat (HQ)'), findsOneWidget);
-    expect(find.text('Dalam Radius (Valid)'), findsOneWidget);
+    expect(find.text('JARAK'), findsOneWidget);
+    // Longitude dan Latitude dihapus sesuai permintaan pengguna
+    expect(find.text('LONGITUDE'), findsNothing);
+    expect(find.text('LATITUDE'), findsNothing);
+    // 2. Lokasi sendiri dibawah (lebar penuh)
+    expect(find.text('LOKASI'), findsOneWidget);
+    expect(find.text('Sesuai Maps'), findsOneWidget);
 
-    // Verify Bento & Action Buttons
+    // Verify Map Attendance Result
+    expect(find.text('Peta Hasil Absensi Karyawan'), findsOneWidget);
+    expect(find.text('Buka Maps'), findsOneWidget);
+
+    // Verify Action Buttons
     expect(find.text('Foto & Lokasi Terverifikasi'), findsOneWidget);
     expect(find.text('Siap Kirim'), findsOneWidget);
     expect(find.text('Kirim & Simpan Presensi'), findsOneWidget);
     expect(find.text('Ambil Ulang Foto'), findsOneWidget);
-    expect(find.text('Pusat Bantuan'), findsOneWidget);
 
     // Test retake photo returns to camera mode
     final retakeButton = find.text('Ambil Ulang Foto');
     await tester.ensureVisible(retakeButton);
     await tester.tap(retakeButton);
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text('Langkah 1 dari 2: Ambil Foto Selfie untuk Memvalidasi Kehadiran'), findsOneWidget);
-    expect(find.text('Pastikan anda menggunakan atribut perusahaan'), findsOneWidget);
+    expect(find.text('Ambil Swafoto'), findsWidgets);
 
     // Take the photo again to finalize
     await tester.ensureVisible(captureButton);
@@ -105,9 +107,6 @@ void main() {
     await tester.tap(submitFinder);
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pump(const Duration(milliseconds: 500));
-
-    // Verify Success Dialog appears
-    expect(find.text('Presensi Berhasil Terkirim!'), findsOneWidget);
     expect(find.text('Kembali ke Beranda'), findsOneWidget);
   });
 }

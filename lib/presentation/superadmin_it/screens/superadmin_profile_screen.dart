@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/constants/bidang_data.dart';
 import '../../../data/models/user_model.dart';
 import '../../../state/auth_provider.dart';
 import '../../auth/login_screen.dart';
@@ -18,8 +19,7 @@ class SuperadminProfileScreen extends StatefulWidget {
       _SuperadminProfileScreenState();
 }
 
-class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
-    with SingleTickerProviderStateMixin {
+class _SuperadminProfileScreenState extends State<SuperadminProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _divisionController;
   late TextEditingController _positionController;
@@ -27,9 +27,6 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
 
   bool _systemAlertsEnabled = true;
   bool _backupAlertsEnabled = true;
-
-  late final AnimationController _pulseController;
-  late final Animation<double> _pulseAnimation;
 
   static const String _defaultSuperadminAvatar =
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBHnouN4NhcfWmjDbG_twFO6sebw3bZ18Eh5o0S5X77EHF5sjwqdJN1_ReCmIRAXuAloD9dPZQaPaz6HVgpuNpNvmO58tfZnPqD0S2Or68H_L0RpASTtBWA4c84ApGfNtIT2D9Dp8lVoCp0JDnad7J_CE3txa5AZ09a1vR9wuxu1NBIUFtj4kKAYnne-NzoAjd5q04Al1Cu_2jIhmMuPgiIkaTQw-LExIXsFQapZNGSTxquu43ZR8o';
@@ -45,15 +42,6 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
     _positionController = TextEditingController(text: user.position);
     _phoneController = TextEditingController(text: user.phone);
     _lastSyncedUser = user;
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-
-    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.25).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
   }
 
   @override
@@ -79,7 +67,6 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
     _divisionController.dispose();
     _positionController.dispose();
     _phoneController.dispose();
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -860,30 +847,18 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                user.name.isNotEmpty
-                                    ? user.name
-                                    : 'Superadmin Pusimpel',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.onSurface,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            const Icon(
-                              Icons.verified_rounded,
-                              color: AppColors.roleStaffIT,
-                              size: 18,
-                            ),
-                          ],
+                        Text(
+                          user.name.isNotEmpty
+                              ? user.name
+                              : 'Superadmin Pusimpel',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                            fontFamily: 'Inter',
+                          ),
                         ),
                         const SizedBox(height: 3),
                         RichText(
@@ -916,58 +891,7 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
                             fontFamily: 'Inter',
                           ),
                         ),
-                        const SizedBox(height: 6),
 
-                        // Pulsing status badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.tertiaryContainer.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColors.tertiaryContainer.withValues(alpha: 0.25),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              AnimatedBuilder(
-                                animation: _pulseAnimation,
-                                builder: (context, child) {
-                                  return Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.tertiaryContainer,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.tertiaryContainer.withValues(
-                                            alpha: _pulseAnimation.value > 1.0 ? 0.5 : 0.1,
-                                          ),
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'Superadmin Pusimpel (Aktif)',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.tertiaryContainer,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -1047,19 +971,83 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
           ),
           const SizedBox(height: 14),
 
-          // Field 2: Divisi Penempatan
-          _buildFieldRow(
-            label: 'Divisi Penempatan',
-            controller: _divisionController,
-            prefixIcon: Icons.business_outlined,
+          // Field 2: Bidang
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bidang',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                initialValue: BidangData.allBidang.contains(_divisionController.text)
+                    ? _divisionController.text
+                    : BidangData.allBidang.first,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.business_outlined, size: 20, color: AppColors.onSurfaceVariant),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                items: BidangData.allBidang.map((b) => DropdownMenuItem(value: b, child: Text(b, style: const TextStyle(fontSize: 13)))).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _divisionController.text = val;
+                      _positionController.text = BidangData.getSeksiForBidang(val).first;
+                    });
+                  }
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 14),
 
-          // Field 3: Jabatan Resmi
-          _buildFieldRow(
-            label: 'Jabatan Resmi',
-            controller: _positionController,
-            prefixIcon: Icons.admin_panel_settings_outlined,
+          // Field 3: Seksi Bidang
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Seksi Bidang',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                key: ValueKey('profile_seksi_${_divisionController.text}'),
+                initialValue: BidangData.getSeksiForBidang(_divisionController.text).contains(_positionController.text)
+                    ? _positionController.text
+                    : BidangData.getSeksiForBidang(_divisionController.text).first,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.admin_panel_settings_outlined, size: 20, color: AppColors.onSurfaceVariant),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                items: BidangData.getSeksiForBidang(_divisionController.text).map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _positionController.text = val;
+                    });
+                  }
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 14),
 
@@ -1073,39 +1061,16 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
           const SizedBox(height: 14),
 
           // Field 5: Kantor Penempatan (Titik Acuan)
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Kantor Penempatan (Acuan Radius Presensi)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Terkunci',
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurfaceVariant,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ),
-            ],
+          const Text(
+            'Kantor Penempatan (Acuan Radius Presensi)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurface,
+              fontFamily: 'Inter',
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
           Container(
@@ -1132,7 +1097,7 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
                       Text(
                         user.officeName.isNotEmpty
                             ? user.officeName
-                            : 'Kantor Pusat Tirtafield Tanjung Pinang',
+                            : 'Kantor Pusat Perumda Air Minum Tirta Kepri Tanjung Pinang',
                         style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
@@ -1152,14 +1117,7 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
                     ],
                   ),
                 ),
-                const Tooltip(
-                  message: 'Ditetapkan oleh Pusimpel IT',
-                  child: Icon(
-                    Icons.verified_rounded,
-                    size: 18,
-                    color: AppColors.secondary,
-                  ),
-                ),
+
               ],
             ),
           ),
@@ -1242,39 +1200,16 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurface,
-                  fontFamily: 'Inter',
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'Dapat Diedit',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.secondary,
-                  fontFamily: 'Inter',
-                ),
-              ),
-            ),
-          ],
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.onSurface,
+            fontFamily: 'Inter',
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 6),
         TextFormField(
@@ -1292,11 +1227,7 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
               size: 20,
               color: AppColors.onSurfaceVariant,
             ),
-            suffixIcon: const Icon(
-              Icons.edit_rounded,
-              size: 18,
-              color: AppColors.secondary,
-            ),
+
             filled: true,
             fillColor: AppColors.background,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -1544,7 +1475,7 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
                         ),
                       ),
                       child: const Text(
-                        '1. Karyawan',
+                        '1. Pengguna',
                         style: TextStyle(fontSize: 11, fontFamily: 'Inter'),
                       ),
                     ),
@@ -1562,7 +1493,7 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
                         ),
                       ),
                       child: const Text(
-                        '2. Direktur',
+                        '2. Admin',
                         style: TextStyle(fontSize: 11, fontFamily: 'Inter'),
                       ),
                     ),
@@ -1582,7 +1513,7 @@ class _SuperadminProfileScreenState extends State<SuperadminProfileScreen>
                         ),
                       ),
                       child: const Text(
-                        '3. Staff IT',
+                        '3. Superadmin',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
